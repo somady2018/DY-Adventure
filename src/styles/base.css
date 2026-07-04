@@ -1,0 +1,248 @@
+:root {
+  --paper: #F2E8D5;
+  --paper-light: #FAF3E5;
+  --paper-dark: #E5D8BC;
+  --ink: #1F3A5C;
+  --ink-soft: #3C5878;
+  --moss: #5B7B5A;
+  --moss-light: #E4ECDD;
+  --moss-dark: #3D5A3C;
+  --amber: #D98E3A;
+  --amber-light: #FBE9CF;
+  --amber-dark: #9C621F;
+  --coral: #C75D4D;
+  --coral-light: #F6DFD9;
+  --coral-dark: #8E3C2F;
+  --slate: #8E5BA6;
+  --slate-light: #EBE1F0;
+  --line: rgba(31, 58, 92, 0.16);
+  --font-display: 'Jua', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-body: 'Nanum Gothic', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-serif: 'Gowun Batang', 'Apple SD Gothic Neo', Georgia, serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-body);
+  background: #DDD3BC;
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 16px calc(60px + var(--safe-bottom));
+}
+
+#root { width: 100%; max-width: 480px; }
+
+button { font-family: var(--font-body); cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.55; }
+input, textarea { font-family: var(--font-body); }
+
+.device {
+  background: var(--paper);
+  border-radius: 28px;
+  box-shadow: 0 12px 40px rgba(31, 58, 92, 0.22), 0 2px 0 rgba(255,255,255,0.4) inset;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(31,58,92,0.12);
+}
+
+.screen {
+  position: relative;
+  min-height: 720px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  padding-top: var(--safe-top);
+}
+
+.screen-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 22px calc(100px + var(--safe-bottom));
+}
+.screen-scroll::-webkit-scrollbar { width: 0; }
+
+.topbar {
+  padding: 18px 22px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.topbar-title { font-family: var(--font-display); font-size: 19px; color: var(--ink); }
+.topbar-sub { font-size: 12px; color: var(--ink-soft); opacity: 0.75; margin-top: 1px; }
+
+.icon-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--paper-light);
+  border: 1.5px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+}
+.icon-btn:active { transform: scale(0.92); }
+
+.text-link-btn {
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  padding: 4px 0;
+}
+
+/* ---------- Bottom Nav (Kid) ---------- */
+.bottom-nav {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--paper-light);
+  border-top: 1.5px solid var(--line);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 8px calc(16px + var(--safe-bottom));
+  z-index: 10;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: none; background: transparent;
+  color: var(--ink-soft); opacity: 0.55;
+  padding: 4px 10px; border-radius: 12px;
+  font-family: var(--font-body);
+}
+.nav-item.active { opacity: 1; color: var(--moss-dark); background: var(--moss-light); }
+.nav-item .nav-ico { font-size: 19px; }
+.nav-item .nav-label { font-size: 10.5px; font-weight: 700; }
+
+/* ---------- Quest Card ---------- */
+.section-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--moss-dark);
+  margin: 22px 0 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.section-label .count-badge {
+  font-family: var(--font-body);
+  font-size: 11px; font-weight: 800;
+  background: var(--moss-light); color: var(--moss-dark);
+  padding: 1px 8px; border-radius: 10px;
+}
+.section-label .xp-badge {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--amber-light);
+  color: var(--amber-dark);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.quest-card {
+  width: 100%;
+  text-align: left;
+  background: var(--paper-light);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 14px 14px 16px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px;
+  position: relative;
+}
+.quest-card.clickable { cursor: pointer; }
+.quest-card.clickable:active { transform: scale(0.985); }
+.quest-card.dim { opacity: 0.6; }
+.quest-card.required { border-left: 4px solid var(--coral); }
+.quest-card.choice { border-left: 4px solid var(--moss); }
+.quest-card.challenge { border-left: 4px solid var(--amber); }
+.quest-card.bonus { border-left: 4px solid var(--slate); }
+
+.quest-emoji {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--paper-dark);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.quest-info { flex: 1; min-width: 0; }
+.quest-title { font-weight: 800; font-size: 14.5px; color: var(--ink); margin-bottom: 2px; line-height: 1.35; }
+.quest-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+.quest-reward { margin-top: 5px; font-size: 11px; font-weight: 800; color: var(--amber-dark); display: flex; align-items: center; gap: 4px; }
+.quest-status-label { margin-top: 5px; font-size: 11px; font-weight: 800; }
+.quest-status-label.pending { color: var(--amber-dark); }
+.quest-status-label.retry { color: var(--coral-dark); }
+
+.quest-tag {
+  position: absolute; top: -8px; left: 12px;
+  font-size: 9.5px; font-weight: 800;
+  padding: 2px 8px; border-radius: 8px; color: white;
+}
+.quest-tag.required { background: var(--coral); }
+.quest-tag.choice { background: var(--moss); }
+.quest-tag.challenge { background: var(--amber); }
+.quest-tag.bonus { background: var(--slate); }
+
+.quest-check {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--line); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper); font-size: 13px;
+}
+.quest-check.pending { background: var(--amber-light); border-color: var(--amber); }
+.quest-check.approved { background: var(--moss); border-color: var(--moss-dark); color: white; }
+.quest-check.retry { background: var(--coral-light); border-color: var(--coral); }
+
+.retry-banner {
+  margin-top: 8px;
+  background: var(--coral-light);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: var(--coral-dark);
+}
+
+/* ---------- Character header (kid home) ---------- */
+.char-banner {
+  margin: 4px 0 6px;
+  background: linear-gradient(180deg, var(--moss-light) 0%, var(--paper) 100%);
+  border-radius: 18px; padding: 16px 16px 14px;
+  display: flex; align-items: center; gap: 14px;
+  border: 1.5px solid var(--line);
+}
+.char-avatar {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--paper-light); border: 2.5px solid var(--moss);
+  display: flex; align-items: center; justify-content: center; font-size: 30px; flex-shrink: 0;
+}
+.char-meta { flex: 1; min-width: 0; }
+.char-name { font-family: var(--font-display); font-size: 15.5px; color: var(--ink); }
+.char-title { font-size: 12px; color: var(--moss-dark); font-weight: 700; margin-top: 1px; }
+.char-bar-track { margin-top: 7px; height: 7px; background: rgba(31,58,92,0.10); border-radius: 6px; overflow: hidden; }
+.char-bar-fill { height: 100%; background: var(--amber); border-radius: 6px; transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.char-bar-label { font-size: 10px; color: var(--ink-soft); margin-top: 3px; }
+
+.stat-strip { display: flex; gap: 7px; overflow-x: auto; padding: 2px 0 4px; margin-bottom: 4px; }
+.stat-strip::-webkit-scrollbar { display: none; }
+.stat-pill {
+  flex-shrink: 0; background: var(--paper-light); border: 1.5px solid var(--line);
+  border-radius: 12px; padding: 7px 11px; text-align: center; min-width: 58px;
+}
+.stat-pill .stat-ico { font-size: 17px; }
+.stat-pill .stat-lv { font-family: var(--font-display); font-size: 12.5px; color: var(--ink); margin-top: 1px; }
+.stat-pill .stat-name { font-size: 9.5px; color: var(--ink-soft); font-weight: 700; }
+
+.sleepy-card {
+  background: var(--paper-dark); border: 1.5px dashed var(--line); border-radius: 16px;
+  padding: 16px; text-align: center; margin-top: 8px;
+}
+.sleepy-card.success { background: var(--moss-light); border-color: var(--moss); border-style: solid; }
+.sleepy-card.waiting { background: var(--amber-light); border-color: var(--amber); border-style: solid; }
+.sleepy-card .sleepy-emoji { font-size: 28px; margin-bottom: 6px; }
+.sleepy-card .sleepy-text { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }

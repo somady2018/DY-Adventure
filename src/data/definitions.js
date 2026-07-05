@@ -14,7 +14,6 @@ export const STATS = {
 export const STAT_LIST = Object.values(STATS);
 export const MAX_LEVEL = 50;
 
-// 능력치 레벨: 능력치별 XP가 누적되는 작은 단위 (스킬트리 잠금해제 기준)
 export function levelFromXp(xp) {
   let level = 1;
   let remaining = xp;
@@ -30,13 +29,10 @@ export function levelFromXp(xp) {
   return { level, into: remaining, need };
 }
 
-// 캐릭터 전체 레벨: 능력치 레벨의 합이 아니라, 모든 퀘스트 보상의 총합(totalXp) 기준.
-// 요구사항 6: "총 XP가 0이면 반드시 Lv.1 견습 탐험가" 를 보장하기 위해
-// 레벨 1 진입에 필요한 첫 구간 임계값을 0으로 둡니다.
 export function characterLevelFromTotalXp(totalXp) {
   let level = 1;
   let remaining = totalXp;
-  let need = 40; // 캐릭터 레벨은 능력치보다 더 천천히 오르도록 더 큰 임계값 사용
+  let need = 40;
   while (remaining >= need && level < MAX_LEVEL) {
     remaining -= need;
     level += 1;
@@ -87,9 +83,6 @@ export function characterTitle(level) {
   return best;
 }
 
-// 퀘스트 종류: required(필수) / choice(선택) / challenge(도전) / bonus(보너스, 구 secret)
-// 요구사항 8: 화면에 노출되는 secret 퀘스트는 명칭만 "보너스 퀘스트"로 바꾸고,
-// 진짜 "조건부로 나타나는 비밀 퀘스트" 로직은 이번 버전에 구현하지 않습니다.
 export const QUEST_TYPE_LABEL = {
   required: "필수 퀘스트",
   choice: "선택 퀘스트",
@@ -97,8 +90,6 @@ export const QUEST_TYPE_LABEL = {
   bonus: "보너스 퀘스트",
 };
 
-// 추천 퀘스트 "템플릿" 목록 — 보호자가 등록 화면에서 체크/해제하는 후보들입니다.
-// 템플릿 자체는 그날의 실제 배정 퀘스트(assignedQuests)와 분리되어 있습니다.
 export const QUEST_TEMPLATES = [
   { templateId: "t1", type: "required", emoji: "🎒", title: "출발 준비의 주문", desc: "학교 준비물을 직접 확인하세요.", statKey: "life", xp: 5 },
   { templateId: "t2", type: "choice", emoji: "🔍", title: "관찰자의 눈", desc: "사슴벌레나 화분에게 필요한게 있을지 확인해요.", statKey: "curiosity", xp: 8 },
@@ -110,14 +101,23 @@ export const QUEST_TEMPLATES = [
   { templateId: "t8", type: "bonus", emoji: "🌿", title: "마음을 말하는 연습", desc: "내 마음을 차근차근 말로 설명해요.", statKey: "heart", xp: 10 },
   { templateId: "t9", type: "required", emoji: "🛁", title: "스스로 씻기", desc: "구석구석 깨끗히 씻어봐요.", statKey: "life", xp: 5 },
   { templateId: "t10", type: "challenge", emoji: "🥰", title: "주어진 밥 다먹기", desc: "아빠에게 합격을 받아보자.", statKey: "life", xp: 5 },
-  { templateId: "t11", type: "choice", emoji: "📖", title: "영어가 술술", desc: "이번 링키 Top10은 나의 것.", statKey: "knowledge", xp: 5 },
-  { templateId: "t12", type: "choice", emoji: "🔢", title: "수학천재가 될테다", desc: "더하기빼기는 누워서 떡먹기지.", statKey: "knowledge", xp: 5 }
+  { templateId: "t11", type: "choice", emoji: "📖", title: "영어가 술술", desc: "이번 링키 Top10은 나의 것.", statKey: "knowledge", xp: 2, rewards: [{ statKey: "knowledge", xp: 2 }, { statKey: "grit", xp: 2 }] },
+  { templateId: "t12", type: "choice", emoji: "🔢", title: "수학천재가 될테다", desc: "더하기빼기는 누워서 떡먹기지.", statKey: "knowledge", xp: 2, rewards: [{ statKey: "knowledge", xp: 2 }, { statKey: "grit", xp: 2 }] }
 ];
 
-// 요구사항 5: 초기 활성 퀘스트는 8개 전부가 아니라 필수1 + 선택2 + 도전1 = 4개만.
+export function getQuestRewards(quest) {
+  if (Array.isArray(quest.rewards) && quest.rewards.length > 0) {
+    return quest.rewards;
+  }
+  return [{ statKey: quest.statKey, xp: quest.xp }];
+}
+
+export function questTotalXp(quest) {
+  return getQuestRewards(quest).reduce((sum, r) => sum + r.xp, 0);
+}
+
 export const DEFAULT_ACTIVE_TEMPLATE_IDS = ["t1", "t2", "t4", "t11", "t10", "t12"];
 
-// 능력치 변환기: 부모가 입력한 평범한 문장을 아이 화면용 모험 문구로 변환합니다.
 const FLAVOR_BY_STAT = {
   life: { emoji: "🎒", prefix: "혼자서도 잘해요", verb: "마치면 생활력이 강화되요!" },
   knowledge: { emoji: "📖", prefix: "마법 도서관 탐험", verb: "마치면 지식 조각을 얻을 수 있어요" },

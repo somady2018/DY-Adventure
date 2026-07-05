@@ -1,7 +1,6 @@
-import { STATS } from "./definitions";
+import { STATS, getQuestRewards } from "./definitions";
 import { isWithinLastNDays } from "../storage/dateUtils";
 
-// 최근 7일간 approved된 퀘스트만 집계합니다. (누적 전체가 아님 — 요구사항 9)
 export function computeWeeklyReport(assignedQuests, baseDate = new Date()) {
   const recentApproved = assignedQuests.filter(
     (q) => q.status === "approved" && isWithinLastNDays(q.date, 7, baseDate)
@@ -13,7 +12,9 @@ export function computeWeeklyReport(assignedQuests, baseDate = new Date()) {
   const xpByStat = {};
   Object.keys(STATS).forEach((k) => { xpByStat[k] = 0; });
   recentApproved.forEach((q) => {
-    xpByStat[q.statKey] = (xpByStat[q.statKey] || 0) + q.xp;
+    getQuestRewards(q).forEach((r) => {
+      xpByStat[r.statKey] = (xpByStat[r.statKey] || 0) + r.xp;
+    });
   });
 
   const topStatEntry = Object.entries(xpByStat).sort((a, b) => b[1] - a[1])[0];
@@ -33,7 +34,6 @@ export function computeWeeklyReport(assignedQuests, baseDate = new Date()) {
   };
 }
 
-// 데이터 기반 서술형 문장 생성. 기록이 없으면 성장했다고 단정하지 않습니다. (요구사항 9)
 export function generateWeeklyStory(report) {
   const { completedCount, topStatKey, secondStatKey, retryCount } = report;
 

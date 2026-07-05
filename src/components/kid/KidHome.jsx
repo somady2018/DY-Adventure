@@ -1,11 +1,11 @@
-import { STAT_LIST, levelFromXp, characterLevelFromTotalXp, characterTitle } from "../../data/definitions";
+import { STAT_LIST, levelFromXp, characterLevelFromTotalXp, characterTitle, questTotalXp } from "../../data/definitions";
 import { QuestCard } from "../shared/Shared";
 import { formatDateKorean } from "../../storage/dateUtils";
 
 function availableXp(quests) {
   return quests
     .filter((q) => q.status !== "approved")
-    .reduce((sum, q) => sum + q.xp, 0);
+    .reduce((sum, q) => sum + questTotalXp(q), 0);
 }
 
 export function KidHome({ quests, statXp, totalXp, todayDate, onOpenQuest, messages, onReadMessage }) {

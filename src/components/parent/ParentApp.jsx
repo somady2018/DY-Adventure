@@ -59,6 +59,7 @@ export function ParentApp({ appState, actions, todayDate, onBackToKid, showToast
         {tab === "data" && (
           <ParentDataManager
             exportJson={actions.exportJson}
+            importState={actions.importState}
             resetAllData={actions.resetAllData}
             showToast={showToast}
           />

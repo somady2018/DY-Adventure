@@ -7,16 +7,18 @@ import {
   clearAllData,
   buildQuestFromTemplate,
   buildCustomQuest,
+  parseStateJson,
+  parseImportedStateJson,
+  STORAGE_KEY,
 } from "../storage/state";
 import { nowIso } from "../storage/dateUtils";
 import { hashPin, verifyPin } from "../storage/pin";
-import { QUEST_TEMPLATES } from "../data/definitions";
+import { QUEST_TEMPLATES, getQuestRewards } from "../data/definitions";
 
 export function useAppState() {
   const [state, setState] = useState(() => loadState());
   const isFirstRender = useRef(true);
 
-  // 상태가 바뀔 때마다 localStorage에 저장 (최초 마운트 시 중복 저장 방지)
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -25,24 +27,19 @@ export function useAppState() {
     saveState(state);
   }, [state]);
 
-  // 다른 탭/창에서 데이터를 초기화했을 때 동기화 (선택적 안전장치)
   useEffect(() => {
     function handleStorageEvent(e) {
-      if (e.key === "adventure.appState.v1" && e.newValue) {
+      if (e.key === STORAGE_KEY && e.newValue) {
         try {
-          setState(JSON.parse(e.newValue));
+          setState(parseStateJson(e.newValue));
         } catch {
-          // 무시: 다른 탭에서 깨진 값을 쓴 경우 현재 상태를 유지합니다.
+          // ignore
         }
       }
     }
     window.addEventListener("storage", handleStorageEvent);
     return () => window.removeEventListener("storage", handleStorageEvent);
   }, []);
-
-  // ---------------------------------------------------------
-  // PIN 관련
-  // ---------------------------------------------------------
 
   const hasPinSet = !!state.parentPinHash;
 
@@ -55,10 +52,6 @@ export function useAppState() {
     if (!state.parentPinHash) return false;
     return verifyPin(pin, state.parentPinHash);
   }, [state.parentPinHash]);
-
-  // ---------------------------------------------------------
-  // 퀘스트 배정 (보호자: 추천 템플릿 토글 + 직접 만들기)
-  // ---------------------------------------------------------
 
   const toggleTemplateActive = useCallback((templateId, dateString) => {
     setState((prev) => {
@@ -89,8 +82,6 @@ export function useAppState() {
     });
   }, []);
 
-  // 활성 템플릿들을 지정한 날짜에 아직 배정되지 않았다면 배정합니다.
-  // (앱 시작 시 / 날짜가 바뀌었을 때 자동으로 호출됨)
   const ensureTemplatesAssignedForDate = useCallback((dateString) => {
     setState((prev) => {
       const existingTemplateIdsForDate = new Set(
@@ -114,11 +105,6 @@ export function useAppState() {
     return quest;
   }, []);
 
-  // ---------------------------------------------------------
-  // 완료 요청 / 승인 / 반려·재도전
-  // ---------------------------------------------------------
-
-  // 아이가 "완료했어요"를 누른 시점 — 상태를 pending으로만 바꿉니다. (요구사항 4)
   const submitQuest = useCallback((questId) => {
     setState((prev) => ({
       ...prev,
@@ -130,19 +116,22 @@ export function useAppState() {
     }));
   }, []);
 
-  // 보호자 승인 — pending 상태인 것만 승인 가능, 한 번만 XP 지급. (요구사항 4)
   const approveQuest = useCallback((questId) => {
     setState((prev) => {
       const target = prev.assignedQuests.find((q) => q.id === questId);
       if (!target || target.status !== "pending") {
-        // pending이 아닌 퀘스트는 승인할 수 없습니다. 상태를 바꾸지 않고 그대로 반환.
         return prev;
       }
       const alreadyGranted = target.xpGranted;
+      const rewards = getQuestRewards(target);
       const nextStatXp = alreadyGranted
         ? prev.statXp
-        : { ...prev.statXp, [target.statKey]: (prev.statXp[target.statKey] || 0) + target.xp };
-      const nextTotalXp = alreadyGranted ? prev.totalXp : prev.totalXp + target.xp;
+        : rewards.reduce(
+            (acc, r) => ({ ...acc, [r.statKey]: (acc[r.statKey] || 0) + r.xp }),
+            prev.statXp
+          );
+      const rewardTotalXp = rewards.reduce((sum, r) => sum + r.xp, 0);
+      const nextTotalXp = alreadyGranted ? prev.totalXp : prev.totalXp + rewardTotalXp;
 
       return {
         ...prev,
@@ -160,7 +149,6 @@ export function useAppState() {
     });
   }, []);
 
-  // 보호자가 재도전을 요청 — pending을 retry로 되돌리고 이유를 남깁니다.
   const requestRetry = useCallback((questId, reason) => {
     setState((prev) => ({
       ...prev,
@@ -172,7 +160,6 @@ export function useAppState() {
     }));
   }, []);
 
-  // 아이가 retry 상태의 퀘스트를 다시 시작 (open으로)
   const restartQuest = useCallback((questId) => {
     setState((prev) => ({
       ...prev,
@@ -184,17 +171,12 @@ export function useAppState() {
     }));
   }, []);
 
-  // 아이 화면에서 보상 애니메이션을 1회 표시한 뒤 큐에서 제거
   const consumeCelebration = useCallback((questId) => {
     setState((prev) => ({
       ...prev,
       pendingCelebrations: prev.pendingCelebrations.filter((id) => id !== questId),
     }));
   }, []);
-
-  // ---------------------------------------------------------
-  // 부모 메시지
-  // ---------------------------------------------------------
 
   const sendParentMessage = useCallback((text) => {
     const message = { id: `m_${Date.now()}`, text, createdAt: nowIso(), readAt: null };
@@ -211,15 +193,17 @@ export function useAppState() {
     }));
   }, []);
 
-  // ---------------------------------------------------------
-  // 데이터 관리 (내보내기 / 초기화)
-  // ---------------------------------------------------------
-
   const exportJson = useCallback(() => exportStateAsJson(state), [state]);
 
   const resetAllData = useCallback(() => {
     clearAllData();
     setState(createInitialState());
+  }, []);
+
+  const importState = useCallback((jsonText) => {
+    const next = parseImportedStateJson(jsonText);
+    setState(next);
+    return next;
   }, []);
 
   return {
@@ -239,6 +223,7 @@ export function useAppState() {
     sendParentMessage,
     markMessageRead,
     exportJson,
+    importState,
     resetAllData,
   };
 }

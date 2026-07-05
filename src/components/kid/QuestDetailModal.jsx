@@ -1,10 +1,13 @@
-import { STATS } from "../../data/definitions";
+import { STATS, getQuestRewards } from "../../data/definitions";
 
-// 아이가 퀘스트 카드를 눌렀을 때 뜨는 상세 확인창.
-// 여기서 "완료했어요"를 눌러야 비로소 pending으로 바뀌고, 이때도 보상은 주지 않습니다. (요구사항 4)
+function rewardSummary(quest) {
+  return getQuestRewards(quest)
+    .map((r) => `${STATS[r.statKey].emoji} ${STATS[r.statKey].name} +${r.xp}`)
+    .join(" · ");
+}
+
 export function QuestDetailModal({ quest, onSubmit, onRestart, onClose }) {
   if (!quest) return null;
-  const stat = STATS[quest.statKey];
 
   if (quest.status === "pending") {
     return (
@@ -18,7 +21,7 @@ export function QuestDetailModal({ quest, onSubmit, onRestart, onClose }) {
             </div>
           </div>
           <div className="modal-sub">
-            보호자가 확인하면 {stat.name} 경험치를 받을 수 있어요. 조금만 기다려주세요!
+            보호자가 확인하면 {rewardSummary(quest)} 경험치를 받을 수 있어요. 조금만 기다려주세요!
           </div>
           <button type="button" className="modal-btn dark" onClick={onClose}>닫기</button>
         </div>
@@ -66,7 +69,6 @@ export function QuestDetailModal({ quest, onSubmit, onRestart, onClose }) {
     );
   }
 
-  // status === "open"
   return (
     <div className="overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -77,7 +79,7 @@ export function QuestDetailModal({ quest, onSubmit, onRestart, onClose }) {
           </div>
         </div>
         <div className="modal-sub" style={{ textAlign: "left" }}>{quest.desc}</div>
-        <div className="modal-stat-gain">{stat.emoji} {stat.name} +{quest.xp} (보호자 확인 후 지급)</div>
+        <div className="modal-stat-gain">{rewardSummary(quest)} (보호자 확인 후 지급)</div>
         <button type="button" className="modal-btn" onClick={() => onSubmit(quest.id)}>
           완료했어요
         </button>
@@ -87,16 +89,16 @@ export function QuestDetailModal({ quest, onSubmit, onRestart, onClose }) {
   );
 }
 
-// 보호자 승인 후, 아이가 앱으로 돌아왔을 때 1회만 보여주는 보상 연출.
 export function CelebrationModal({ quest, onClose }) {
   if (!quest) return null;
-  const stat = STATS[quest.statKey];
+  const rewards = getQuestRewards(quest);
+  const primaryStat = STATS[rewards[0].statKey];
   return (
     <div className="overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-card reward" onClick={(e) => e.stopPropagation()}>
-        <div className="stamp-circle" aria-hidden="true">{stat.emoji}</div>
+        <div className="stamp-circle" aria-hidden="true">{primaryStat.emoji}</div>
         <div className="modal-headline">{quest.title} 완료!</div>
-        <div className="modal-stat-gain">{stat.name} 경험치 +{quest.xp}</div>
+        <div className="modal-stat-gain">{rewardSummary(quest)}</div>
         <div className="modal-sub">보호자가 확인했어요. 다음 모험으로 가볼까요?</div>
         <button type="button" className="modal-btn" onClick={onClose}>모험 계속하기</button>
       </div>

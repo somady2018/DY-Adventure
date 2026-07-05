@@ -66,6 +66,9 @@ npm run preview
       "desc": "학교 준비물을 직접 확인하세요.",
       "statKey": "life",
       "xp": 5,
+      // rewards가 있으면 여러 능력치에 걸친 보상(예: [{statKey:"knowledge",xp:2},{statKey:"grit",xp:2}]).
+      // 없으면(null) 위 statKey/xp 하나만 지급하는 단일 보상 퀘스트입니다.
+      "rewards": null,
       "status": "approved",          // open | pending | approved | retry | cancelled
       "createdAt": "2026-06-22T05:00:00.000Z",
       "submittedAt": "2026-06-22T06:10:00.000Z",
@@ -100,6 +103,66 @@ npm run preview
 
 ---
 
+## 2-1. 능력치 · 레벨 · 스킬 시스템 (`src/data/definitions.js`)
+
+### 능력치 7종
+
+| key | 이름 | 이모지 | 설명 |
+|---|---|---|---|
+| life | 생활력 | 🎒 | 스스로 챙기고 정리하는 힘 |
+| knowledge | 지식 | 📖 | 읽고 배우며 쌓이는 힘 |
+| curiosity | 탐구력 | 🔍 | 관찰하고 질문하는 힘 |
+| grit | 끈기 | 🔥 | 다시 도전하는 힘 |
+| courage | 용기 | ⚔️ | 표현하고 시도하는 힘 |
+| teamwork | 협동력 | 🤝 | 함께 돕고 나누는 힘 |
+| heart | 마음력 | 💛 | 마음을 알아채고 쉬는 힘 |
+
+### 레벨 계산 공식
+
+- **능력치별 레벨** (스킬트리 잠금 해제 기준, `levelFromXp`): 능력치 XP가 쌓이며 레벨업.
+  필요 XP = `20 + (직전 레벨 - 1) × 8`. 누적 기준 Lv.3 = 48XP, Lv.4 = 84XP, Lv.8 = 308XP. 최대 50레벨.
+- **캐릭터 전체 레벨** (`characterLevelFromTotalXp`): 능력치 합이 아니라 모든 퀘스트 보상의 총합(`totalXp`) 기준.
+  필요 XP = `40 + (직전 레벨 - 1) × 15`. 0XP면 항상 Lv.1. 누적 기준 Lv.5 = 250XP, Lv.10 = 900XP. 최대 50레벨.
+
+### 칭호 11단계 (`CHARACTER_TITLES`, 캐릭터 전체 레벨 기준)
+
+Lv.1 견습 탐험가 → Lv.5 반짝 새싹 탐험가 → Lv.10 숲길 관찰자 → Lv.15 작은 연구 대장 →
+Lv.20 용감한 도전가 → Lv.25 따뜻한 마음 지킴이 → Lv.30 지혜로운 길잡이 →
+Lv.35 반짝이는 문제 해결사 → Lv.40 우리 집 모험 대장 → Lv.45 꿈을 키우는 탐험가 → Lv.50 전설의 어린 모험가
+
+### 스킬 14종 (`SKILLS`, 능력치별 2개씩 · 각 능력치 레벨 기준 해금)
+
+| 능력치 | 낮은 단계 (Lv.3~4) | 높은 단계 (Lv.8) |
+|---|---|---|
+| life | 🎒 가방 마스터 (Lv.3) | 🧼 생활 루틴 장인 (Lv.8) |
+| knowledge | 📚 책장 넘기는 자 (Lv.3) | 📝 단어 수집가 (Lv.8) |
+| curiosity | 🔬 작은 연구원 (Lv.4) | 👁️ 관찰자의 눈 (Lv.8) |
+| grit | 💪 다시 한번! (Lv.4) | ⛰️ 차근차근 등반가 (Lv.8) |
+| courage | 📢 용감한 말솜씨 (Lv.4) | 🚀 첫걸음 용사 (Lv.8) |
+| teamwork | 🛡️ 우리 집 수호대 (Lv.4) | 🤲 도움의 손 (Lv.8) |
+| heart | 💬 감정 통역사 (Lv.4) | 💛 따뜻한 경청가 (Lv.8) |
+
+### 퀘스트 능력치 보상 (`getQuestRewards`)
+
+퀘스트(템플릿/인스턴스)는 `rewards` 배열을 가질 수 있습니다. 예를 들어 t11("영어가 술술"),
+t12("수학천재가 될테다")는 원래 지식 +5 하나였지만, 지금은 **지식 +2 · 끈기 +2**로 두
+능력치에 나눠 지급하도록 바뀌었습니다 (`rewards: [{statKey:"knowledge",xp:2},{statKey:"grit",xp:2}]`).
+`rewards`가 없는 퀘스트는 기존처럼 `statKey`/`xp` 하나만 지급합니다. 이미 기기에 저장된
+(rewards 필드가 없는) 예전 퀘스트 기록도 그대로 정상 동작합니다.
+
+### 능력치 × 스킬 × 현재 퀘스트 조합 분석
+
+- 기본 활성 퀘스트(`DEFAULT_ACTIVE_TEMPLATE_IDS`: t1, t2, t4, t11, t10, t12)는 **life(2개) · knowledge(2개) ·
+  curiosity(1개) · courage(1개)**, 총 4개 능력치만 XP를 채워줍니다. (t11, t12는 knowledge와 함께 grit에도
+  XP를 조금씩 나눠주므로 grit도 소폭 채워집니다.)
+- teamwork · heart 능력치를 주는 템플릿(t7, t8)은 기본값이 **비활성**이라, 관련 스킬 4종
+  (우리 집 수호대/도움의 손, 감정 통역사/따뜻한 경청가)은 보호자가 등록 화면에서 해당 템플릿을 켜거나
+  "직접 만들기"로 해당 능력치 퀘스트를 추가하지 않는 한 계속 잠긴 채로 남습니다.
+- 7개 능력치를 고르게 성장시키려면 보호자가 최소 1개씩은 teamwork/heart 퀘스트를 활성화하는 것을
+  권장합니다.
+
+---
+
 ## 3. 실제로 구현된 기능 vs 아직 데모 수준인 기능
 
 ### 완전히 동작하는 기능
@@ -115,7 +178,9 @@ npm run preview
 - 직접 만들기(할 일·능력치·XP 4~12·타입·날짜 지정) → 토스트 알림
 - 캐릭터 레벨을 능력치 합이 아닌 총 XP 기준으로 계산 (0XP면 항상 Lv.1)
 - 최근 7일 approved 기준 주간 리포트, 기록 없을 때 단정적 문구 출력 안 함
-- JSON 데이터 내보내기, 2단계 확인을 거치는 전체 초기화
+- JSON 데이터 내보내기 / 가져오기(복원, 형태 검증 + 2단계 확인), 2단계 확인을 거치는 전체 초기화
+- 다른 탭에서 데이터가 바뀌어도 동일한 마이그레이션 로직을 거쳐 안전하게 동기화
+- 퀘스트가 여러 능력치에 걸친 보상(rewards)을 가질 수 있음 (예: 지식 +2 · 끈기 +2)
 - 응원 메시지 보내기 → 아이 홈 화면에서 1회 확인 가능
 - 클릭 가능한 요소는 모두 `<button>` + `aria-label` 적용
 - Vite 프로덕션 빌드 (`npm run build`로 React production 빌드 산출,
@@ -227,3 +292,48 @@ adventure-v2/
 │  │  └─ shared/          퀘스트 카드, 토스트, 확인 다이얼로그
 │  └─ styles/             base / components / screens 3개 CSS 파일
 ```
+
+---
+
+## 6. GitHub Pages 재배포 가이드
+
+이 프로젝트는 저장소 `https://github.com/somady2018/DY-Adventure` 의 `main` 브랜치 `/docs`
+폴더를 GitHub Pages 소스로 사용해 `https://somady2018.github.io/DY-Adventure/` 주소로
+서비스되고 있습니다. Vite의 기본 빌드 출력 폴더인 `dist/`는 `.gitignore`에 포함되어 커밋되지
+않으므로, 배포하려면 빌드 결과를 `docs/`로 복사해서 커밋해야 합니다.
+
+### 코드 수정 후 다시 배포하는 절차
+
+1. `src/` 이하 코드를 수정합니다.
+2. 로컬에서 정상 동작을 확인합니다.
+   ```bash
+   npm install
+   npm run dev
+   ```
+3. 프로덕션 빌드를 생성합니다.
+   ```bash
+   npm run build
+   ```
+   `dist/` 폴더에 `index.html`, `assets/`, 아이콘 등이 생성됩니다.
+4. 빌드 결과를 `docs/`로 복사합니다 (기존 `docs/` 내용을 덮어씁니다).
+   ```bash
+   rm -rf docs
+   mkdir docs
+   cp -r dist/* docs/
+   ```
+5. 변경사항을 커밋하고 GitHub에 푸시합니다.
+   ```bash
+   git add -A
+   git commit -m "설명: 무엇을 바꿨는지"
+   git push origin main
+   ```
+6. 보통 1~2분 안에 `https://somady2018.github.io/DY-Adventure/` 에 반영됩니다.
+   화면이 그대로면 브라우저 강력 새로고침(Cmd/Ctrl+Shift+R) 후 다시 확인하세요.
+
+### 참고
+
+- `docs/index.html`은 이제 `assets/*.js`, `assets/*.css`로 분리된 일반적인 Vite 빌드 구조입니다
+  (예전에는 JS/CSS가 한 파일에 인라인된 단일 파일이었습니다). `vite.config.js`의 `base: './'`
+  설정 덕분에 GitHub Pages 하위 경로(`/DY-Adventure/`)에서도 정상 동작합니다.
+- GitHub Pages 소스 브랜치/폴더 설정은 저장소의 **Settings → Pages**에서 확인·변경할 수 있습니다.
+  현재는 `main` / `/docs` 구성으로 추정되니, 다르게 되어 있다면 그에 맞춰 조정하세요.

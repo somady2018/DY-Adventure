@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { STATS } from "../../data/definitions";
+import { STATS, getQuestRewards } from "../../data/definitions";
+
+function rewardSummary(quest) {
+  return getQuestRewards(quest)
+    .map((r) => `${STATS[r.statKey].name} +${r.xp}`)
+    .join(" · ");
+}
 
 export function ParentToday({ quests, onApprove, onRequestRetry }) {
-  const [approvingId, setApprovingId] = useState(null); // 더블클릭 방지용 (요구사항 4)
+  const [approvingId, setApprovingId] = useState(null);
   const [retryTargetId, setRetryTargetId] = useState(null);
   const [retryReason, setRetryReason] = useState("");
 
@@ -11,7 +17,7 @@ export function ParentToday({ quests, onApprove, onRequestRetry }) {
   const others = quests.filter((q) => q.status === "open" || q.status === "retry");
 
   function handleApprove(questId) {
-    if (approvingId) return; // 이미 처리 중이면 무시 (중복 승인 방지)
+    if (approvingId) return;
     setApprovingId(questId);
     onApprove(questId);
     setTimeout(() => setApprovingId(null), 600);
@@ -51,7 +57,7 @@ export function ParentToday({ quests, onApprove, onRequestRetry }) {
               <div className="pending-emoji" aria-hidden="true">{q.emoji}</div>
               <div className="pending-info">
                 <div className="pending-title">{q.title}</div>
-                <div className="pending-meta">{STATS[q.statKey].name} +{q.xp} 예정</div>
+                <div className="pending-meta">{rewardSummary(q)} 예정</div>
               </div>
               <div className="pending-actions">
                 <button type="button" className="pbtn reject" onClick={() => openRetryPrompt(q.id)} aria-label={`${q.title} 재도전 요청`}>↺</button>
@@ -79,7 +85,7 @@ export function ParentToday({ quests, onApprove, onRequestRetry }) {
               <div className="pending-emoji" aria-hidden="true">{q.emoji}</div>
               <div className="pending-info">
                 <div className="pending-title">{q.title}</div>
-                <div className="pending-meta">{STATS[q.statKey].name} +{q.xp} 승인됨</div>
+                <div className="pending-meta">{rewardSummary(q)} 승인됨</div>
               </div>
             </div>
           ))}
@@ -96,7 +102,7 @@ export function ParentToday({ quests, onApprove, onRequestRetry }) {
                 <div className="pending-info">
                   <div className="pending-title">{q.title}</div>
                   <div className="pending-meta">
-                    {q.status === "retry" ? `재도전 대기 · ${q.retryReason || ""}` : `${STATS[q.statKey].name} 퀘스트`}
+                    {q.status === "retry" ? `재도전 대기 · ${q.retryReason || ""}` : `${rewardSummary(q)} 퀘스트`}
                   </div>
                 </div>
               </div>

@@ -1,13 +1,11 @@
-import { STATS, QUEST_TYPE_LABEL } from "../../data/definitions";
+import { STATS, QUEST_TYPE_LABEL, getQuestRewards } from "../../data/definitions";
 
 export function QuestTagLabel({ type }) {
   return <span className={`quest-tag ${type}`}>{QUEST_TYPE_LABEL[type] || type}</span>;
 }
 
-// 아이 화면용 퀘스트 카드. 상태(open/pending/approved/retry)에 따라 다르게 표시합니다.
-// 요구사항 7: pending은 체크 표시 대신 "확인 대기 중" 문구로 표시.
 export function QuestCard({ quest, onOpen }) {
-  const stat = STATS[quest.statKey];
+  const rewards = getQuestRewards(quest);
   const isOpen = quest.status === "open";
   const statusText =
     quest.status === "pending" ? "확인 대기 중" :
@@ -27,7 +25,16 @@ export function QuestCard({ quest, onOpen }) {
         <div className="quest-title">{quest.title}</div>
         <div className="quest-desc">{quest.desc}</div>
         {isOpen && (
-          <div className="quest-reward">{stat.emoji} {stat.name} +{quest.xp}</div>
+          <div className="quest-reward">
+            {rewards.map((r, i) => {
+              const s = STATS[r.statKey];
+              return (
+                <span key={r.statKey}>
+                  {i > 0 && " · "}{s.emoji} {s.name} +{r.xp}
+                </span>
+              );
+            })}
+          </div>
         )}
         {!isOpen && (
           <div className={`quest-status-label ${quest.status}`}>{statusText}</div>
@@ -52,7 +59,6 @@ export function Toast({ toast }) {
   );
 }
 
-// 2단계 확인이 필요한 위험 동작(전체 초기화)을 위한 범용 확인 다이얼로그.
 export function ConfirmDialog({ title, message, confirmLabel, danger, onConfirm, onCancel }) {
   return (
     <div className="overlay" role="dialog" aria-modal="true">

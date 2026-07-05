@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ConfirmDialog } from "../shared/Shared";
 
-export function ParentDataManager({ exportJson, resetAllData, showToast }) {
-  const [confirmStep, setConfirmStep] = useState(0); // 0: 안내, 1: 첫번째 확인, 2: 두번째 확인
+export function ParentDataManager({ exportJson, importState, resetAllData, showToast }) {
+  const [confirmStep, setConfirmStep] = useState(0);
+  const [pendingImportText, setPendingImportText] = useState(null);
+  const fileInputRef = useRef(null);
 
   function handleExport() {
     const json = exportJson();
@@ -18,6 +20,35 @@ export function ParentDataManager({ exportJson, resetAllData, showToast }) {
     showToast("데이터를 내보냈어요", "success");
   }
 
+  function handleImportButtonClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileSelected(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPendingImportText(String(reader.result || ""));
+    reader.onerror = () => showToast("파일을 읽지 못했어요", "error");
+    reader.readAsText(file);
+  }
+
+  function handleImportConfirmed() {
+    try {
+      importState(pendingImportText);
+      showToast("데이터를 복원했어요", "success");
+    } catch (err) {
+      showToast(err?.message || "복원에 실패했어요. 올바른 파일인지 확인해주세요.", "error");
+    } finally {
+      setPendingImportText(null);
+    }
+  }
+
+  function handleImportCancel() {
+    setPendingImportText(null);
+  }
+
   function handleResetConfirmed() {
     resetAllData();
     setConfirmStep(0);
@@ -27,11 +58,29 @@ export function ParentDataManager({ exportJson, resetAllData, showToast }) {
   return (
     <div className="fade-slide">
       <div className="parent-card">
-        <div className="parent-card-title">📦 데이터 내보내기</div>
+        <div className="parent-card-title">📦 데이터 내보내기 / 가져오기</div>
         <div className="parent-card-sub" style={{ marginBottom: 10 }}>
-          지금까지의 퀘스트, 경험치, 승인 기록, 메시지를 JSON 파일로 저장합니다.
+          지금까지의 퀘스트, 경험치, 승인 기록, 메시지를 JSON 파일로 저장하거나, 이전에
+          내보내둔 파일을 다시 불러와 복원할 수 있어요.
         </div>
         <button type="button" className="modal-btn dark" onClick={handleExport}>JSON 파일로 내보내기</button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleFileSelected}
+          style={{ display: "none" }}
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+        <button
+          type="button"
+          className="modal-btn ghost"
+          style={{ marginTop: 8 }}
+          onClick={handleImportButtonClick}
+        >
+          내보낸 파일로 복원하기
+        </button>
       </div>
 
       <div className="danger-zone">
@@ -41,6 +90,17 @@ export function ParentDataManager({ exportJson, resetAllData, showToast }) {
         </div>
         <button type="button" className="modal-btn danger" onClick={() => setConfirmStep(1)}>모든 데이터 초기화하기</button>
       </div>
+
+      {pendingImportText !== null && (
+        <ConfirmDialog
+          title="파일로 복원할까요?"
+          message="선택한 파일 내용으로 현재 저장된 퀘스트·경험치·메시지를 덮어써요. 파일에 없는 최근 기록은 사라질 수 있으니, 최신 상태를 먼저 내보내기 해뒀는지 확인해주세요."
+          confirmLabel="복원하기"
+          danger
+          onConfirm={handleImportConfirmed}
+          onCancel={handleImportCancel}
+        />
+      )}
 
       {confirmStep === 1 && (
         <ConfirmDialog

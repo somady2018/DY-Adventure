@@ -1,14 +1,19 @@
 import { useState, useMemo } from "react";
-import { STAT_LIST, QUEST_TEMPLATES, QUEST_TYPE_LABEL, transformToQuestFlavor, XP_MIN, XP_MAX } from "../../data/definitions";
+import { STAT_LIST, QUEST_TEMPLATES, QUEST_TYPE_LABEL, transformToQuestFlavor, XP_MIN, XP_MAX, getQuestRewards } from "../../data/definitions";
 import { todaySeoulDateString, tomorrowSeoulDateString, formatDateKorean } from "../../storage/dateUtils";
 
-function statColorTag(statKey) {
+function statColorTag(statKey, key) {
   const s = STAT_LIST.find((x) => x.key === statKey);
   return (
-    <span className="qb-stat-tag" style={{ background: s.light, color: s.color }}>
+    <span className="qb-stat-tag" style={{ background: s.light, color: s.color }} key={key || statKey}>
       {s.emoji} {s.name}
     </span>
   );
+}
+
+function statColorTags(template) {
+  const rewards = getQuestRewards(template);
+  return rewards.map((r) => statColorTag(r.statKey, r.statKey));
 }
 
 export function ParentBuilder({ activeTemplateIds, todayDate, onToggleTemplate, onAssignCustom, showToast }) {
@@ -40,7 +45,7 @@ export function ParentBuilder({ activeTemplateIds, todayDate, onToggleTemplate, 
                     {on ? "✓" : ""}
                   </button>
                   <div className="qb-label">{q.emoji} {q.title}</div>
-                  {statColorTag(q.statKey)}
+                  <span style={{ display: "flex", gap: 4 }}>{statColorTags(q)}</span>
                 </div>
               );
             })}

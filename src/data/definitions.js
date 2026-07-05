@@ -102,7 +102,11 @@ export const QUEST_TEMPLATES = [
   { templateId: "t9", type: "required", emoji: "🛁", title: "스스로 씻기", desc: "구석구석 깨끗히 씻어봐요.", statKey: "life", xp: 5 },
   { templateId: "t10", type: "challenge", emoji: "🥰", title: "주어진 밥 다먹기", desc: "아빠에게 합격을 받아보자.", statKey: "life", xp: 5 },
   { templateId: "t11", type: "choice", emoji: "📖", title: "영어가 술술", desc: "이번 링키 Top10은 나의 것.", statKey: "knowledge", xp: 2, rewards: [{ statKey: "knowledge", xp: 2 }, { statKey: "grit", xp: 2 }] },
-  { templateId: "t12", type: "choice", emoji: "🔢", title: "수학천재가 될테다", desc: "더하기빼기는 누워서 떡먹기지.", statKey: "knowledge", xp: 2, rewards: [{ statKey: "knowledge", xp: 2 }, { statKey: "grit", xp: 2 }] }
+  { templateId: "t12", type: "choice", emoji: "🔢", title: "수학천재가 될테다", desc: "더하기빼기는 누워서 떡먹기지.", statKey: "knowledge", xp: 2, rewards: [{ statKey: "knowledge", xp: 2 }, { statKey: "grit", xp: 2 }] },
+  { templateId: "t13", type: "required", emoji: "🫧", title: "깨끗히 세수하기", desc: "얼굴을 물로 꼼꼼히 씻고 상쾌하게 시작해요.", statKey: "life", xp: 3 },
+  { templateId: "t14", type: "bonus", emoji: "🍽️", title: "다 먹은 그릇 정리 도와주기", desc: "식사가 끝난 뒤 내 그릇을 정리하며 가족을 도와요.", statKey: "teamwork", xp: 5 },
+  { templateId: "t15", type: "choice", emoji: "💛", title: "오늘 마음 이야기하기", desc: "오늘 좋았던 일이나 속상했던 일을 부모님에게 말해요.", statKey: "heart", xp: 5 },
+  { templateId: "t16", type: "challenge", emoji: "🔍", title: "새로운 발견 기록하기", desc: "오늘 새롭게 발견한 것을 글로 적어봐요.", statKey: "curiosity", xp: 10 }
 ];
 
 export function getQuestRewards(quest) {

@@ -1,11 +1,12 @@
 import { SKILLS, STATS, levelFromXp } from "../../data/definitions";
+import { particle } from "../../utils/korean";
 
 export function KidSkillTree({ statXp, profile }) {
   return (
     <div className="screen-scroll fade-slide">
       <div className="section-label mt-0">🗺️ 스킬 트리</div>
       <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 14, lineHeight: 1.6 }}>
-        능력치 레벨이 오르면 새로운 스킬을 얻어요. 스킬은 {profile.childName}이가 어떤 사람으로 자라고 있는지 보여주는 기록이에요.
+        능력치 레벨이 오르면 새로운 스킬을 얻어요. 스킬은 {profile.childName}{particle(profile.childName, "이", "가")} 어떤 사람으로 자라고 있는지 보여주는 기록이에요.
       </div>
       {SKILLS.map((sk) => {
         const stat = STATS[sk.statKey];

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { STAT_LIST } from "../../data/definitions";
 import { computeWeeklyReport, generateWeeklyStory } from "../../data/weeklyReport";
+import { particle } from "../../utils/korean";
 
 export function ParentReport({ assignedQuests, profile, onSendMessage, showToast }) {
   const [messageText, setMessageText] = useState("");
@@ -19,7 +20,7 @@ export function ParentReport({ assignedQuests, profile, onSendMessage, showToast
   return (
     <div className="fade-slide">
       <div className="weekly-story-box" style={{ marginTop: 4 }}>
-        <div className="weekly-story-label">최근 7일 {profile.childName}이의 이야기</div>
+        <div className="weekly-story-label">최근 7일 {profile.childName}{particle(profile.childName, "이", "")}의 이야기</div>
         <div className="weekly-story-text">{story}</div>
       </div>
 
@@ -57,7 +58,7 @@ export function ParentReport({ assignedQuests, profile, onSendMessage, showToast
 
       <div className="parent-card">
         <div className="parent-card-title">💬 칭찬 메시지 보내기</div>
-        <div className="parent-card-sub" style={{ marginBottom: 10 }}>{profile.childName}이의 모험 일기에 짧은 응원을 남겨보세요.</div>
+        <div className="parent-card-sub" style={{ marginBottom: 10 }}>{profile.childName}{particle(profile.childName, "이", "")}의 모험 일기에 짧은 응원을 남겨보세요.</div>
         <textarea
           className="textarea-input"
           placeholder="이번 주 정말 잘했어! 특히 감자 관찰 기록이 멋지더라."

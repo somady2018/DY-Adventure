@@ -1,4 +1,5 @@
 import { STATS, getLevelTitle, getQuestRewards } from "../../data/definitions";
+import { particle } from "../../utils/korean";
 
 function rewardSummary(quest) {
   return getQuestRewards(quest)
@@ -115,7 +116,7 @@ export function LevelUpModal({ levelUp, profile, onClose }) {
         <div className="stamp-circle" aria-hidden="true">🎉</div>
         <div className="modal-headline">레벨 업!</div>
         <div className="modal-sub">
-          {profile.childName}이는 이제<br />
+          {profile.childName}{particle(profile.childName, "은", "는")} 이제<br />
           <strong>{levelTitle}</strong>가 되었어요.
         </div>
         <button type="button" className="modal-btn" onClick={onClose}>좋아요</button>

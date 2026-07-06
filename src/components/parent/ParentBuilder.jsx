@@ -173,7 +173,7 @@ function CustomQuestForm({ onAssignCustom, showToast }) {
 
       {preview && (
         <div className="preview-box">
-          <div className="preview-label">도영이 화면에는 이렇게 보여요</div>
+          <div className="preview-label">아이 화면에는 이렇게 보여요</div>
           <div className="preview-title">{preview.emoji} {preview.title}</div>
           <div className="preview-desc">{preview.desc}</div>
         </div>

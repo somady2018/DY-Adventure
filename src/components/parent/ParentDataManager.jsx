@@ -105,7 +105,7 @@ export function ParentDataManager({ exportJson, importState, resetAllData, showT
       {confirmStep === 1 && (
         <ConfirmDialog
           title="정말 초기화할까요?"
-          message="도영이의 모든 퀘스트와 경험치 기록이 사라져요. 계속하려면 한 번 더 확인할게요."
+          message="아이의 모든 퀘스트와 경험치 기록이 사라져요. 계속하려면 한 번 더 확인할게요."
           confirmLabel="계속하기"
           danger
           onConfirm={() => setConfirmStep(2)}

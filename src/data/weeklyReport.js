@@ -1,5 +1,6 @@
 import { STATS, getQuestRewards } from "./definitions";
 import { isWithinLastNDays } from "../storage/dateUtils";
+import { particle } from "../utils/korean";
 
 export function computeWeeklyReport(assignedQuests, baseDate = new Date()) {
   const recentApproved = assignedQuests.filter(
@@ -38,13 +39,13 @@ export function generateWeeklyStory(report, childName = "도영") {
   const { completedCount, topStatKey, secondStatKey, retryCount } = report;
 
   if (completedCount === 0) {
-    return `최근 7일 동안 보호자가 승인한 퀘스트가 아직 없어요. 퀘스트를 등록하고 완료를 승인하면, 이곳에 ${childName}이의 한 주 이야기가 채워집니다.`;
+    return `최근 7일 동안 보호자가 승인한 퀘스트가 아직 없어요. 퀘스트를 등록하고 완료를 승인하면, 이곳에 ${childName}${particle(childName, "이", "")}의 한 주 이야기가 채워집니다.`;
   }
 
   const topName = topStatKey ? STATS[topStatKey].name : null;
   const secondName = secondStatKey ? STATS[secondStatKey].name : null;
 
-  let story = `최근 7일 동안 ${childName}이는 퀘스트를 ${completedCount}개 완료했어요.`;
+  let story = `최근 7일 동안 ${childName}${particle(childName, "은", "는")} 퀘스트를 ${completedCount}개 완료했어요.`;
 
   if (topName) {
     story += ` 그중에서도 ${topName} 영역에서 가장 많이 성장했어요.`;

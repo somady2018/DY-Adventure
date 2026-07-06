@@ -3,8 +3,10 @@ import { KidHome } from "./KidHome";
 import { KidCharacter } from "./KidCharacter";
 import { KidSkillTree } from "./KidSkillTree";
 import { KidMessages } from "./KidMessages";
-import { QuestDetailModal, CelebrationModal } from "./QuestDetailModal";
+import { GuildLetterModal } from "./GuildLetterModal";
+import { QuestDetailModal, CelebrationModal, LevelUpModal } from "./QuestDetailModal";
 import { questsForDate } from "../../storage/state";
+import { getDailyGuildLetter, getGuildMeta } from "../../data/definitions";
 
 export function KidApp({ appState, actions, todayDate, onRequestParentMode }) {
   const [tab, setTab] = useState("home");
@@ -13,6 +15,12 @@ export function KidApp({ appState, actions, todayDate, onRequestParentMode }) {
   // pendingCelebrations 큐의 맨 앞 항목을 그대로 "현재 보여줄 셀러브레이션"으로 파생시킵니다.
   // (setState를 useEffect 안에서 직접 호출하지 않기 위한 구조)
   const celebrationQuestId = appState.pendingCelebrations[0] || null;
+  const levelUp = appState.pendingLevelUps?.[0] || null;
+  const profile = appState.profile;
+  const guild = getGuildMeta(profile?.guild);
+  const dailyLetter = getDailyGuildLetter(profile?.guild, todayDate);
+  const shouldShowDailyLetter = !activeQuest && !levelUp && !celebrationQuestId &&
+    appState.dailyLetter?.lastShownDate !== todayDate;
 
   const todayQuests = useMemo(
     () => questsForDate(appState.assignedQuests, todayDate),
@@ -41,12 +49,20 @@ export function KidApp({ appState, actions, todayDate, onRequestParentMode }) {
     if (celebrationQuestId) actions.consumeCelebration(celebrationQuestId);
   }
 
+  function closeLevelUp() {
+    if (levelUp) actions.consumeLevelUp(levelUp.id);
+  }
+
+  function closeDailyLetter() {
+    actions.markDailyLetterShown(todayDate, dailyLetter.id);
+  }
+
   return (
     <div className="screen">
       <div className="topbar">
         <div>
-          <div className="topbar-title">🗺️ 오늘의 모험</div>
-          <div className="topbar-sub">탐험가 도영의 일기</div>
+          <div className="topbar-title">{guild.icon} {guild.name}</div>
+          <div className="topbar-sub">{profile.childName}의 오늘 퀘스트</div>
         </div>
         <button type="button" className="icon-btn" onClick={onRequestParentMode} aria-label="보호자 화면으로 이동">
           🔒
@@ -59,13 +75,14 @@ export function KidApp({ appState, actions, todayDate, onRequestParentMode }) {
           statXp={appState.statXp}
           totalXp={appState.totalXp}
           todayDate={todayDate}
+          profile={profile}
           onOpenQuest={handleOpenQuest}
           messages={appState.parentMessages}
           onReadMessage={actions.markMessageRead}
         />
       )}
-      {tab === "character" && <KidCharacter statXp={appState.statXp} totalXp={appState.totalXp} />}
-      {tab === "skills" && <KidSkillTree statXp={appState.statXp} />}
+      {tab === "character" && <KidCharacter statXp={appState.statXp} totalXp={appState.totalXp} profile={profile} />}
+      {tab === "skills" && <KidSkillTree statXp={appState.statXp} profile={profile} />}
       {tab === "messages" && (
         <KidMessages
           messages={appState.parentMessages}
@@ -103,6 +120,12 @@ export function KidApp({ appState, actions, todayDate, onRequestParentMode }) {
 
       {!activeQuest && celebrationQuest && (
         <CelebrationModal quest={celebrationQuest} onClose={closeCelebration} />
+      )}
+      {!activeQuest && !celebrationQuest && levelUp && (
+        <LevelUpModal levelUp={levelUp} profile={profile} onClose={closeLevelUp} />
+      )}
+      {shouldShowDailyLetter && (
+        <GuildLetterModal profile={profile} letter={dailyLetter} onClose={closeDailyLetter} />
       )}
     </div>
   );

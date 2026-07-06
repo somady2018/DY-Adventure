@@ -1,4 +1,4 @@
-import { STATS, getQuestRewards } from "../../data/definitions";
+import { STATS, getLevelTitle, getQuestRewards } from "../../data/definitions";
 
 function rewardSummary(quest) {
   return getQuestRewards(quest)
@@ -101,6 +101,24 @@ export function CelebrationModal({ quest, onClose }) {
         <div className="modal-stat-gain">{rewardSummary(quest)}</div>
         <div className="modal-sub">보호자가 확인했어요. 다음 모험으로 가볼까요?</div>
         <button type="button" className="modal-btn" onClick={onClose}>모험 계속하기</button>
+      </div>
+    </div>
+  );
+}
+
+export function LevelUpModal({ levelUp, profile, onClose }) {
+  if (!levelUp || !profile) return null;
+  const levelTitle = getLevelTitle(levelUp.level, profile.guild);
+  return (
+    <div className="overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="modal-card reward" onClick={(e) => e.stopPropagation()}>
+        <div className="stamp-circle" aria-hidden="true">🎉</div>
+        <div className="modal-headline">레벨 업!</div>
+        <div className="modal-sub">
+          {profile.childName}이는 이제<br />
+          <strong>{levelTitle}</strong>가 되었어요.
+        </div>
+        <button type="button" className="modal-btn" onClick={onClose}>좋아요</button>
       </div>
     </div>
   );

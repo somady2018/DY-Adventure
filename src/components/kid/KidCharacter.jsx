@@ -1,15 +1,16 @@
-import { STAT_LIST, levelFromXp, characterLevelFromTotalXp, characterTitle } from "../../data/definitions";
+import { STAT_LIST, characterLevelFromTotalXp, characterTitle, getGuildMeta, levelFromXp } from "../../data/definitions";
 
-export function KidCharacter({ statXp, totalXp }) {
+export function KidCharacter({ statXp, totalXp, profile }) {
   const { level: charLevel } = characterLevelFromTotalXp(totalXp);
+  const guild = getGuildMeta(profile?.guild);
 
   return (
     <div className="screen-scroll fade-slide">
       <div className="char-banner" style={{ marginTop: 4 }}>
-        <div className="char-avatar" style={{ fontSize: 34 }} aria-hidden="true">🧭</div>
+        <div className="char-avatar" style={{ fontSize: 34 }} aria-hidden="true">{guild.icon}</div>
         <div className="char-meta">
-          <div className="char-name">불꽃 탐험가 도영</div>
-          <div className="char-title">Lv.{charLevel} · {characterTitle(charLevel)}</div>
+          <div className="char-name">{guild.avatarLabel} {profile.childName}</div>
+          <div className="char-title">Lv.{charLevel} · {characterTitle(charLevel, profile.guild)}</div>
         </div>
       </div>
 

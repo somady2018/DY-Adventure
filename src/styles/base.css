@@ -224,6 +224,7 @@ input, textarea { font-family: var(--font-body); }
 .char-meta { flex: 1; min-width: 0; }
 .char-name { font-family: var(--font-display); font-size: 15.5px; color: var(--ink); }
 .char-title { font-size: 12px; color: var(--moss-dark); font-weight: 700; margin-top: 1px; }
+.char-guild-line { font-size: 11px; color: var(--ink-soft); margin-top: 2px; line-height: 1.35; }
 .char-bar-track { margin-top: 7px; height: 7px; background: rgba(31,58,92,0.10); border-radius: 6px; overflow: hidden; }
 .char-bar-fill { height: 100%; background: var(--amber); border-radius: 6px; transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .char-bar-label { font-size: 10px; color: var(--ink-soft); margin-top: 3px; }

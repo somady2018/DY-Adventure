@@ -3,6 +3,7 @@ import { useAppState } from "./hooks/useAppState";
 import { useToast } from "./hooks/useToast";
 import { todaySeoulDateString } from "./storage/dateUtils";
 import { KidApp } from "./components/kid/KidApp";
+import { Onboarding } from "./components/kid/Onboarding";
 import { ParentApp } from "./components/parent/ParentApp";
 import { PinGate } from "./components/parent/PinGate";
 import { Toast } from "./components/shared/Shared";
@@ -22,9 +23,10 @@ export default function App() {
   const activeTemplateKey = state.activeTemplateIds.join("|");
 
   useEffect(() => {
+    if (!state.profile?.guild) return;
     ensureTemplatesAssignedForDate(todayDate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todayDate, state.createdAt, activeTemplateKey]);
+  }, [todayDate, state.createdAt, activeTemplateKey, state.profile?.guild]);
 
   // 자정 경과를 감지해 todayDate를 갱신 (앱을 켜둔 채로 날짜가 바뀌는 경우 대비)
   useEffect(() => {
@@ -49,7 +51,10 @@ export default function App() {
 
   return (
     <div className="device">
-      {mode === "kid" && (
+      {mode === "kid" && !state.profile?.guild && (
+        <Onboarding onComplete={appStateApi.saveProfile} />
+      )}
+      {mode === "kid" && state.profile?.guild && (
         <KidApp
           appState={state}
           actions={appStateApi}

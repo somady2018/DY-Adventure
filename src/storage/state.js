@@ -1,7 +1,7 @@
-import { DEFAULT_ACTIVE_TEMPLATE_IDS, STAT_LIST } from "../data/definitions";
+import { DEFAULT_ACTIVE_TEMPLATE_IDS, STAT_LIST, normalizeGuildKey } from "../data/definitions";
 import { nowIso } from "./dateUtils";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const STORAGE_KEY = "adventure.appState.v1";
 
 function emptyStatXp() {
@@ -14,6 +14,11 @@ export function createInitialState() {
   return {
     schemaVersion: SCHEMA_VERSION,
     createdAt: nowIso(),
+    profile: null,
+    dailyLetter: {
+      lastShownDate: null,
+      lastMessageId: null,
+    },
     parentPinHash: null,
     activeTemplateIds: [...DEFAULT_ACTIVE_TEMPLATE_IDS],
     assignedQuests: [],
@@ -21,6 +26,7 @@ export function createInitialState() {
     totalXp: 0,
     parentMessages: [],
     pendingCelebrations: [],
+    pendingLevelUps: [],
   };
 }
 
@@ -64,12 +70,38 @@ export function saveState(state) {
 function migrateIfNeeded(parsed) {
   const initial = createInitialState();
   if (!parsed || typeof parsed !== "object") return initial;
-  return {
+  const next = {
     ...initial,
     ...parsed,
     schemaVersion: SCHEMA_VERSION,
     statXp: { ...initial.statXp, ...(parsed.statXp || {}) },
+    dailyLetter: { ...initial.dailyLetter, ...(parsed.dailyLetter || {}) },
   };
+
+  const isLegacyState = !parsed.schemaVersion || parsed.schemaVersion < 2;
+  if (!next.profile && isLegacyState) {
+    next.profile = {
+      childName: "도영",
+      guild: "adventurer",
+      createdAt: parsed.createdAt || nowIso(),
+      updatedAt: nowIso(),
+    };
+  }
+
+  if (next.profile) {
+    next.profile = {
+      childName: next.profile.childName || "도영",
+      guild: normalizeGuildKey(next.profile.guild),
+      createdAt: next.profile.createdAt || parsed.createdAt || nowIso(),
+      updatedAt: next.profile.updatedAt || nowIso(),
+    };
+  }
+
+  if (!Array.isArray(next.pendingLevelUps)) {
+    next.pendingLevelUps = [];
+  }
+
+  return next;
 }
 
 export function exportStateAsJson(state) {

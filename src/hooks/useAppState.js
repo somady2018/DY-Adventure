@@ -13,7 +13,7 @@ import {
 } from "../storage/state";
 import { nowIso } from "../storage/dateUtils";
 import { hashPin, verifyPin } from "../storage/pin";
-import { QUEST_TEMPLATES, getQuestRewards } from "../data/definitions";
+import { QUEST_TEMPLATES, characterLevelFromTotalXp, getQuestRewards, normalizeGuildKey } from "../data/definitions";
 
 export function useAppState() {
   const [state, setState] = useState(() => loadState());
@@ -52,6 +52,34 @@ export function useAppState() {
     if (!state.parentPinHash) return false;
     return verifyPin(pin, state.parentPinHash);
   }, [state.parentPinHash]);
+
+  const saveProfile = useCallback(({ childName, guild }) => {
+    const trimmedName = (childName || "").trim() || "도영";
+    const safeGuild = normalizeGuildKey(guild);
+    setState((prev) => {
+      const createdAt = prev.profile?.createdAt || nowIso();
+      return {
+        ...prev,
+        profile: {
+          childName: trimmedName,
+          guild: safeGuild,
+          createdAt,
+          updatedAt: nowIso(),
+        },
+      };
+    });
+  }, []);
+
+  const markDailyLetterShown = useCallback((dateString, messageId) => {
+    setState((prev) => ({
+      ...prev,
+      dailyLetter: {
+        ...(prev.dailyLetter || {}),
+        lastShownDate: dateString,
+        lastMessageId: messageId,
+      },
+    }));
+  }, []);
 
   const toggleTemplateActive = useCallback((templateId, dateString) => {
     setState((prev) => {
@@ -132,6 +160,11 @@ export function useAppState() {
           );
       const rewardTotalXp = rewards.reduce((sum, r) => sum + r.xp, 0);
       const nextTotalXp = alreadyGranted ? prev.totalXp : prev.totalXp + rewardTotalXp;
+      const beforeLevel = characterLevelFromTotalXp(prev.totalXp).level;
+      const afterLevel = characterLevelFromTotalXp(nextTotalXp).level;
+      const pendingLevelUps = !alreadyGranted && afterLevel > beforeLevel
+        ? [...(prev.pendingLevelUps || []), { id: `lvl_${Date.now()}_${afterLevel}`, level: afterLevel, createdAt: nowIso() }]
+        : (prev.pendingLevelUps || []);
 
       return {
         ...prev,
@@ -145,6 +178,7 @@ export function useAppState() {
         pendingCelebrations: alreadyGranted
           ? prev.pendingCelebrations
           : [...prev.pendingCelebrations, questId],
+        pendingLevelUps,
       };
     });
   }, []);
@@ -175,6 +209,13 @@ export function useAppState() {
     setState((prev) => ({
       ...prev,
       pendingCelebrations: prev.pendingCelebrations.filter((id) => id !== questId),
+    }));
+  }, []);
+
+  const consumeLevelUp = useCallback((levelUpId) => {
+    setState((prev) => ({
+      ...prev,
+      pendingLevelUps: (prev.pendingLevelUps || []).filter((item) => item.id !== levelUpId),
     }));
   }, []);
 
@@ -212,6 +253,8 @@ export function useAppState() {
     hasPinSet,
     setupPin,
     checkPin,
+    saveProfile,
+    markDailyLetterShown,
     toggleTemplateActive,
     ensureTemplatesAssignedForDate,
     assignCustomQuest,
@@ -220,6 +263,7 @@ export function useAppState() {
     requestRetry,
     restartQuest,
     consumeCelebration,
+    consumeLevelUp,
     sendParentMessage,
     markMessageRead,
     exportJson,

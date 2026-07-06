@@ -1,4 +1,4 @@
-import { STAT_LIST, levelFromXp, characterLevelFromTotalXp, characterTitle, questTotalXp } from "../../data/definitions";
+import { STAT_LIST, characterLevelFromTotalXp, characterTitle, getGuildMeta, levelFromXp, questTotalXp } from "../../data/definitions";
 import { QuestCard } from "../shared/Shared";
 import { formatDateKorean } from "../../storage/dateUtils";
 
@@ -8,7 +8,7 @@ function availableXp(quests) {
     .reduce((sum, q) => sum + questTotalXp(q), 0);
 }
 
-export function KidHome({ quests, statXp, totalXp, todayDate, onOpenQuest, messages, onReadMessage }) {
+export function KidHome({ quests, statXp, totalXp, todayDate, profile, onOpenQuest, messages, onReadMessage }) {
   const required = quests.filter((q) => q.type === "required");
   const choice = quests.filter((q) => q.type === "choice");
   const challengeAndBonus = quests.filter((q) => q.type === "challenge" || q.type === "bonus");
@@ -18,7 +18,8 @@ export function KidHome({ quests, statXp, totalXp, todayDate, onOpenQuest, messa
     quests.some((q) => q.status === "pending") && !quests.some((q) => q.status === "open" || q.status === "retry");
 
   const { level: charLevel } = characterLevelFromTotalXp(totalXp);
-  const title = characterTitle(charLevel);
+  const guild = getGuildMeta(profile?.guild);
+  const title = characterTitle(charLevel, profile?.guild);
   const approvedCount = quests.filter((q) => q.status === "approved").length;
 
   const unreadMessage = messages.find((m) => !m.readAt);
@@ -34,10 +35,11 @@ export function KidHome({ quests, statXp, totalXp, todayDate, onOpenQuest, messa
       )}
 
       <div className="char-banner">
-        <div className="char-avatar" aria-hidden="true">🧭</div>
+        <div className="char-avatar" aria-hidden="true">{guild.icon}</div>
         <div className="char-meta">
-          <div className="char-name">불꽃 탐험가 도영</div>
+          <div className="char-name">{guild.avatarLabel} {profile.childName}</div>
           <div className="char-title">Lv.{charLevel} · {title}</div>
+          <div className="char-guild-line">{guild.homeLine}</div>
           <div className="char-bar-track">
             <div
               className="char-bar-fill"

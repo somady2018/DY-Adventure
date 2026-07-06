@@ -7,7 +7,7 @@ function rewardSummary(quest) {
     .join(" · ");
 }
 
-export function ParentToday({ quests, onApprove, onRequestRetry }) {
+export function ParentToday({ quests, profile, onApprove, onRequestRetry }) {
   const [approvingId, setApprovingId] = useState(null);
   const [retryTargetId, setRetryTargetId] = useState(null);
   const [retryReason, setRetryReason] = useState("");
@@ -49,7 +49,7 @@ export function ParentToday({ quests, onApprove, onRequestRetry }) {
 
       <div className="parent-card">
         <div className="parent-card-title">⏳ 확인 대기</div>
-        <div className="parent-card-sub">도영이가 완료를 알려온 퀘스트예요. 확인하고 승인해주세요.</div>
+        <div className="parent-card-sub">{profile.childName}이가 완료를 알려온 퀘스트예요. 확인하고 승인해주세요.</div>
         <div style={{ marginTop: 4 }}>
           {pending.length === 0 && <div className="empty-row">아직 확인 대기 중인 퀘스트가 없어요</div>}
           {pending.map((q) => (
@@ -115,7 +115,7 @@ export function ParentToday({ quests, onApprove, onRequestRetry }) {
         <div className="overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-headline">재도전을 요청할까요?</div>
-            <div className="modal-sub">도영이의 퀘스트 화면에 보일 짧은 이유를 남겨주세요.</div>
+            <div className="modal-sub">{profile.childName}이의 퀘스트 화면에 보일 짧은 이유를 남겨주세요.</div>
             <textarea
               className="textarea-input"
               style={{ marginBottom: 14 }}

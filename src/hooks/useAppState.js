@@ -7,13 +7,15 @@ import {
   clearAllData,
   buildQuestFromTemplate,
   buildCustomQuest,
+  createQuestTemplate,
+  updateQuestTemplate,
   parseStateJson,
   parseImportedStateJson,
   STORAGE_KEY,
 } from "../storage/state";
 import { nowIso } from "../storage/dateUtils";
 import { hashPin, verifyPin } from "../storage/pin";
-import { QUEST_TEMPLATES, characterLevelFromTotalXp, getQuestRewards, normalizeGuildKey } from "../data/definitions";
+import { characterLevelFromTotalXp, getQuestRewards, normalizeGuildKey } from "../data/definitions";
 
 export function useAppState() {
   const [state, setState] = useState(() => loadState());
@@ -81,56 +83,155 @@ export function useAppState() {
     }));
   }, []);
 
-  const toggleTemplateActive = useCallback((templateId, dateString) => {
+  const saveQuestTemplate = useCallback((input) => {
+    let saved = null;
     setState((prev) => {
-      const isActive = prev.activeTemplateIds.includes(templateId);
+      const existing = prev.questTemplates.find((template) => template.id === input.id);
+      saved = existing ? updateQuestTemplate(existing, input) : createQuestTemplate(input);
+      return {
+        ...prev,
+        questTemplates: existing
+          ? prev.questTemplates.map((template) => (template.id === saved.id ? saved : template))
+          : [...prev.questTemplates, saved],
+      };
+    });
+    return saved;
+  }, []);
 
-      if (isActive) {
-        return {
-          ...prev,
-          activeTemplateIds: prev.activeTemplateIds.filter((id) => id !== templateId),
-          assignedQuests: dateString
-            ? prev.assignedQuests.filter(
-                (q) => !(q.date === dateString && q.templateId === templateId && q.status !== "approved")
-              )
-            : prev.assignedQuests,
-        };
-      }
+  const toggleQuestTemplateActive = useCallback((templateId) => {
+    setState((prev) => ({
+      ...prev,
+      questTemplates: prev.questTemplates.map((template) =>
+        template.id === templateId ? { ...template, isActive: !template.isActive, updatedAt: nowIso() } : template
+      ),
+    }));
+  }, []);
 
-      const activeTemplateIds = [...prev.activeTemplateIds, templateId];
-      const template = QUEST_TEMPLATES.find((q) => q.templateId === templateId);
-      const alreadyAssigned = dateString && prev.assignedQuests.some(
-        (q) => q.date === dateString && q.templateId === templateId
-      );
-      const assignedQuests = template && dateString && !alreadyAssigned
-        ? [...prev.assignedQuests, buildQuestFromTemplate(template, dateString)]
-        : prev.assignedQuests;
+  const deleteQuestTemplate = useCallback((templateId) => {
+    let deleted = false;
+    setState((prev) => {
+      const target = prev.questTemplates.find((template) => template.id === templateId);
+      if (!target || target.source === "system") return prev;
+      deleted = true;
+      const removeId = (ids) => ids.filter((id) => id !== templateId);
+      return {
+        ...prev,
+        questTemplates: prev.questTemplates.filter((template) => template.id !== templateId),
+        questSets: {
+          dailyRequiredTemplateIds: removeId(prev.questSets.dailyRequiredTemplateIds),
+          dailyChoiceTemplateIds: removeId(prev.questSets.dailyChoiceTemplateIds),
+          dailyChallengeTemplateIds: removeId(prev.questSets.dailyChallengeTemplateIds),
+        },
+      };
+    });
+    return deleted;
+  }, []);
 
-      return { ...prev, activeTemplateIds, assignedQuests };
+  const setQuestSetMembership = useCallback((setKey, templateId, included) => {
+    setState((prev) => {
+      if (!prev.questTemplates.some((template) => template.id === templateId)) return prev;
+      const current = prev.questSets[setKey] || [];
+      const nextIds = included
+        ? Array.from(new Set([...current, templateId]))
+        : current.filter((id) => id !== templateId);
+      return {
+        ...prev,
+        questSets: {
+          ...prev.questSets,
+          [setKey]: nextIds,
+        },
+      };
     });
   }, []);
 
-  const ensureTemplatesAssignedForDate = useCallback((dateString) => {
+  const assignTemplateQuest = useCallback((templateId, dateString, options = {}) => {
+    let result = { ok: false, reason: "missing" };
     setState((prev) => {
-      const existingTemplateIdsForDate = new Set(
-        prev.assignedQuests
-          .filter((q) => q.date === dateString && q.templateId)
-          .map((q) => q.templateId)
+      const template = prev.questTemplates.find((item) => item.id === templateId);
+      if (!template) return prev;
+      const alreadyAssigned = prev.assignedQuests.some(
+        (quest) => quest.date === dateString && quest.templateId === templateId
       );
-      const toAdd = prev.activeTemplateIds.filter((tid) => !existingTemplateIdsForDate.has(tid));
-      if (toAdd.length === 0) return prev;
-      const newQuests = toAdd
-        .map((tid) => QUEST_TEMPLATES.find((t) => t.templateId === tid))
-        .filter(Boolean)
-        .map((template) => buildQuestFromTemplate(template, dateString));
+      if (alreadyAssigned) {
+        result = { ok: false, reason: "duplicate", template };
+        return prev;
+      }
+      const quest = buildQuestFromTemplate(template, dateString, options);
+      result = { ok: true, quest, template };
+      return { ...prev, assignedQuests: [...prev.assignedQuests, quest] };
+    });
+    return result;
+  }, []);
+
+  const assignQuestSet = useCallback((dateString) => {
+    let result = { added: 0, duplicates: 0 };
+    setState((prev) => {
+      const groups = [
+        ["dailyRequiredTemplateIds", "required"],
+        ["dailyChoiceTemplateIds", "choice"],
+        ["dailyChallengeTemplateIds", "challenge"],
+      ];
+      const existing = new Set(
+        prev.assignedQuests
+          .filter((quest) => quest.date === dateString && quest.templateId)
+          .map((quest) => quest.templateId)
+      );
+      const templates = new Map(prev.questTemplates.map((template) => [template.id, template]));
+      const newQuests = [];
+      let duplicates = 0;
+
+      groups.forEach(([setKey, type]) => {
+        (prev.questSets[setKey] || []).forEach((templateId) => {
+          const template = templates.get(templateId);
+          if (!template || template.isActive === false) return;
+          if (existing.has(templateId)) {
+            duplicates += 1;
+            return;
+          }
+          existing.add(templateId);
+          newQuests.push(buildQuestFromTemplate(template, dateString, { type }));
+        });
+      });
+
+      result = { added: newQuests.length, duplicates };
+      if (newQuests.length === 0) return prev;
       return { ...prev, assignedQuests: [...prev.assignedQuests, ...newQuests] };
     });
+    return result;
   }, []);
 
+  const toggleTemplateActive = useCallback((templateId) => {
+    toggleQuestTemplateActive(templateId);
+  }, [toggleQuestTemplateActive]);
+
+  const ensureTemplatesAssignedForDate = useCallback(() => {}, []);
+
   const assignCustomQuest = useCallback((input) => {
-    const quest = buildCustomQuest(input);
-    setState((prev) => ({ ...prev, assignedQuests: [...prev.assignedQuests, quest] }));
-    return quest;
+    let savedTemplate = null;
+    let quest = null;
+    setState((prev) => {
+      let nextTemplates = prev.questTemplates;
+      let templateId = null;
+
+      if (input.saveAsTemplate) {
+        savedTemplate = createQuestTemplate({
+          title: input.title,
+          storyTitle: input.storyTitle,
+          description: input.description || input.desc,
+          ability: input.ability || input.statKey,
+          defaultXp: input.xp,
+          defaultType: input.type,
+          emoji: input.emoji,
+          isActive: true,
+        });
+        templateId = savedTemplate.id;
+        nextTemplates = [...prev.questTemplates, savedTemplate];
+      }
+
+      quest = buildCustomQuest({ ...input, templateId });
+      return { ...prev, questTemplates: nextTemplates, assignedQuests: [...prev.assignedQuests, quest] };
+    });
+    return { quest, template: savedTemplate };
   }, []);
 
   const submitQuest = useCallback((questId) => {
@@ -255,6 +356,12 @@ export function useAppState() {
     checkPin,
     saveProfile,
     markDailyLetterShown,
+    saveQuestTemplate,
+    toggleQuestTemplateActive,
+    deleteQuestTemplate,
+    setQuestSetMembership,
+    assignTemplateQuest,
+    assignQuestSet,
     toggleTemplateActive,
     ensureTemplatesAssignedForDate,
     assignCustomQuest,

@@ -4,6 +4,8 @@ import { ParentBuilder } from "./ParentBuilder";
 import { ParentReport } from "./ParentReport";
 import { ParentDataManager } from "./ParentDataManager";
 import { ParentProfileSettings } from "./ParentProfileSettings";
+import { ParentQuestSets } from "./ParentQuestSets";
+import { ParentTemplateManager } from "./ParentTemplateManager";
 import { questsForDate } from "../../storage/state";
 import { getGuildMeta } from "../../data/definitions";
 
@@ -33,9 +35,11 @@ export function ParentApp({ appState, actions, todayDate, onBackToKid, showToast
         <div className="seg-control">
           <button type="button" className={tab === "today" ? "active" : ""} onClick={() => setTab("today")}>오늘</button>
           <button type="button" className={tab === "build" ? "active" : ""} onClick={() => setTab("build")}>퀘스트 등록</button>
+          <button type="button" className={tab === "sets" ? "active" : ""} onClick={() => setTab("sets")}>기본 세트</button>
+          <button type="button" className={tab === "templates" ? "active" : ""} onClick={() => setTab("templates")}>템플릿 관리</button>
           <button type="button" className={tab === "report" ? "active" : ""} onClick={() => setTab("report")}>주간 리포트</button>
           <button type="button" className={tab === "profile" ? "active" : ""} onClick={() => setTab("profile")}>아이 설정</button>
-          <button type="button" className={tab === "data" ? "active" : ""} onClick={() => setTab("data")}>데이터</button>
+          <button type="button" className={tab === "data" ? "active" : ""} onClick={() => setTab("data")}>기록 백업</button>
         </div>
 
         {tab === "today" && (
@@ -48,10 +52,29 @@ export function ParentApp({ appState, actions, todayDate, onBackToKid, showToast
         )}
         {tab === "build" && (
           <ParentBuilder
-            activeTemplateIds={appState.activeTemplateIds}
+            questTemplates={appState.questTemplates}
+            questSets={appState.questSets}
             todayDate={todayDate}
-            onToggleTemplate={actions.toggleTemplateActive}
+            onAssignTemplateQuest={actions.assignTemplateQuest}
+            onAssignQuestSet={actions.assignQuestSet}
             onAssignCustom={actions.assignCustomQuest}
+            showToast={showToast}
+          />
+        )}
+        {tab === "sets" && (
+          <ParentQuestSets
+            questTemplates={appState.questTemplates}
+            questSets={appState.questSets}
+            onSetMembership={actions.setQuestSetMembership}
+            showToast={showToast}
+          />
+        )}
+        {tab === "templates" && (
+          <ParentTemplateManager
+            questTemplates={appState.questTemplates}
+            onSaveTemplate={actions.saveQuestTemplate}
+            onToggleTemplateActive={actions.toggleQuestTemplateActive}
+            onDeleteTemplate={actions.deleteQuestTemplate}
             showToast={showToast}
           />
         )}

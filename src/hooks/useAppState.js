@@ -199,6 +199,26 @@ export function useAppState() {
     return result;
   }, []);
 
+  const removeTemplateQuestForDate = useCallback((templateId, dateString) => {
+    let result = { ok: false, reason: "missing" };
+    setState((prev) => {
+      const target = prev.assignedQuests.find(
+        (quest) => quest.date === dateString && quest.templateId === templateId
+      );
+      if (!target) return prev;
+      if (target.status !== "open") {
+        result = { ok: false, reason: "locked", quest: target };
+        return prev;
+      }
+      result = { ok: true, quest: target };
+      return {
+        ...prev,
+        assignedQuests: prev.assignedQuests.filter((quest) => quest.id !== target.id),
+      };
+    });
+    return result;
+  }, []);
+
   const assignQuestSet = useCallback((dateString) => {
     let result = { added: 0, duplicates: 0 };
     setState((prev) => {
@@ -398,6 +418,7 @@ export function useAppState() {
     setQuestSetMembership,
     assignTemplateQuest,
     assignTemplateQuests,
+    removeTemplateQuestForDate,
     assignQuestSet,
     toggleTemplateActive,
     ensureTemplatesAssignedForDate,

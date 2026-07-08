@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   QUEST_TYPE_LABEL,
   STAT_LIST,
@@ -6,7 +6,6 @@ import {
 } from "../../data/definitions";
 import {
   addDaysToDateString,
-  formatDateKorean,
   koreanWeekdayForDateString,
   weekdayCodeForDateString,
 } from "../../storage/dateUtils";
@@ -15,19 +14,20 @@ function statMeta(statKey) {
   return STAT_LIST.find((item) => item.key === statKey) || STAT_LIST[0];
 }
 
-function isTemplateForDate(template, dateString) {
-  const repeatDays = Array.isArray(template.repeatDays) && template.repeatDays.length
+function repeatDays(template) {
+  return Array.isArray(template.repeatDays) && template.repeatDays.length
     ? template.repeatDays
     : ["daily"];
+}
+
+function isTemplateForDate(template, dateString) {
   const dayCode = weekdayCodeForDateString(dateString);
-  return repeatDays.includes("daily") || repeatDays.includes(dayCode);
+  const days = repeatDays(template);
+  return days.includes("daily") || days.includes(dayCode);
 }
 
 function isDailyTemplate(template) {
-  const repeatDays = Array.isArray(template.repeatDays) && template.repeatDays.length
-    ? template.repeatDays
-    : ["daily"];
-  return repeatDays.includes("daily");
+  return repeatDays(template).includes("daily");
 }
 
 export function ParentBuilder({
@@ -35,14 +35,13 @@ export function ParentBuilder({
   assignedQuests,
   todayDate,
   onAssignTemplateQuests,
+  onRemoveTemplateQuestForDate,
   showToast,
 }) {
   const [dateChoice, setDateChoice] = useState("today");
   const [customDate, setCustomDate] = useState(todayDate);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
   const [deselectedDailyByDate, setDeselectedDailyByDate] = useState({});
-
   const selectedDate = dateChoice === "today"
     ? todayDate
     : dateChoice === "tomorrow"
@@ -50,59 +49,71 @@ export function ParentBuilder({
       : customDate;
   const weekdayLabel = koreanWeekdayForDateString(selectedDate);
 
-  const assignedTemplateIds = useMemo(() => new Set(
-    assignedQuests
-      .filter((quest) => quest.date === selectedDate && quest.templateId)
-      .map((quest) => quest.templateId)
-  ), [assignedQuests, selectedDate]);
-
   const visibleTemplates = useMemo(() => (
     questTemplates
       .filter((template) => template.isActive !== false)
       .filter((template) => showAllTemplates || isTemplateForDate(template, selectedDate))
   ), [questTemplates, selectedDate, showAllTemplates]);
 
-  const assignableSelectedIds = useMemo(() => {
-    const visibleIds = new Set(visibleTemplates.map((template) => template.id));
-    const deselectedDailyIds = new Set(deselectedDailyByDate[selectedDate] || []);
-    const autoDailyIds = visibleTemplates
-      .filter((template) => isDailyTemplate(template))
-      .map((template) => template.id)
-      .filter((id) => !deselectedDailyIds.has(id));
-    return Array.from(new Set([...autoDailyIds, ...selectedIds]))
-      .filter((id) => visibleIds.has(id) && !assignedTemplateIds.has(id));
-  }, [assignedTemplateIds, deselectedDailyByDate, selectedDate, selectedIds, visibleTemplates]);
+  const assignedByTemplateId = useMemo(() => {
+    const map = new Map();
+    assignedQuests
+      .filter((quest) => quest.date === selectedDate && quest.templateId)
+      .forEach((quest) => map.set(quest.templateId, quest));
+    return map;
+  }, [assignedQuests, selectedDate]);
 
-  function toggleSelection(template, checked) {
-    if (isDailyTemplate(template)) {
+  const autoDailyTemplateIds = useMemo(() => (
+    visibleTemplates
+      .filter((template) => isDailyTemplate(template))
+      .filter((template) => !(deselectedDailyByDate[selectedDate] || []).includes(template.id))
+      .filter((template) => !assignedByTemplateId.has(template.id))
+      .map((template) => template.id)
+  ), [assignedByTemplateId, deselectedDailyByDate, selectedDate, visibleTemplates]);
+
+  useEffect(() => {
+    if (autoDailyTemplateIds.length === 0) return;
+    onAssignTemplateQuests(autoDailyTemplateIds, selectedDate);
+  }, [autoDailyTemplateIds, onAssignTemplateQuests, selectedDate]);
+
+  function handleToggle(template, checked) {
+    if (checked) {
+      if (isDailyTemplate(template)) {
+        setDeselectedDailyByDate((prev) => {
+          const current = (prev[selectedDate] || []).filter((id) => id !== template.id);
+          return { ...prev, [selectedDate]: current };
+        });
+      }
+      const result = onAssignTemplateQuests([template.id], selectedDate);
+      if (result.added > 0) {
+        showToast(`"${template.title}" 퀘스트를 등록했어요.`, "success");
+      }
+      return;
+    }
+
+    const daily = isDailyTemplate(template);
+    if (daily) {
       setDeselectedDailyByDate((prev) => {
         const current = new Set(prev[selectedDate] || []);
-        if (checked) current.delete(template.id);
-        else current.add(template.id);
+        current.add(template.id);
         return { ...prev, [selectedDate]: Array.from(current) };
       });
-      return;
     }
 
-    setSelectedIds((prev) => {
-      if (checked) return Array.from(new Set([...prev, template.id]));
-      return prev.filter((id) => id !== template.id);
-    });
-  }
-
-  function handleAssign() {
-    const result = onAssignTemplateQuests(assignableSelectedIds, selectedDate);
-    if (result.added > 0) {
-      showToast(`${formatDateKorean(selectedDate)} 퀘스트 ${result.added}개를 등록했어요.`, "success");
-      setSelectedIds([]);
-      setDeselectedDailyByDate((prev) => ({ ...prev, [selectedDate]: [] }));
+    const result = onRemoveTemplateQuestForDate(template.id, selectedDate);
+    if (result.ok) {
+      showToast(`"${template.title}" 퀘스트를 제외했어요.`, "success");
       return;
     }
-    if (result.duplicates > 0) {
-      showToast("이미 등록된 퀘스트는 다시 만들지 않았어요.", "error");
+    if (result.reason === "locked") {
+      showToast("이미 진행 중이거나 완료된 퀘스트는 여기서 제외하지 않았어요.", "error");
       return;
     }
-    showToast("등록할 퀘스트를 먼저 체크해 주세요.", "error");
+    if (daily) {
+      showToast(`"${template.title}" 퀘스트를 오늘은 제외했어요.`, "success");
+      return;
+    }
+    showToast("아직 등록되지 않은 퀘스트예요.", "error");
   }
 
   return (
@@ -110,7 +121,7 @@ export function ParentBuilder({
       <div className="parent-card" style={{ marginTop: 4 }}>
         <div className="parent-card-title">오늘 퀘스트 등록</div>
         <div className="parent-card-sub">
-          오늘 요일에 맞는 퀘스트가 표시돼요. 추가하고 싶은 퀘스트를 체크한 뒤 등록해 주세요.
+          체크하면 바로 등록되고, 체크를 해제하면 아직 시작 전인 퀘스트는 바로 제외돼요.
         </div>
 
         <div className="date-tab-row">
@@ -154,16 +165,18 @@ export function ParentBuilder({
 
         <div className="simple-template-list">
           {visibleTemplates.map((template) => {
-            const alreadyAssigned = assignedTemplateIds.has(template.id);
-            const checked = alreadyAssigned || assignableSelectedIds.includes(template.id);
+            const assignedQuest = assignedByTemplateId.get(template.id);
+            const dailyDeselected = (deselectedDailyByDate[selectedDate] || []).includes(template.id);
+            const checked = !!assignedQuest || (isDailyTemplate(template) && !dailyDeselected);
+            const locked = assignedQuest && assignedQuest.status !== "open";
             const stat = statMeta(template.ability);
             return (
-              <label className={`template-check-row ${alreadyAssigned ? "already-assigned" : ""}`} key={template.id}>
+              <label className={`template-check-row ${assignedQuest ? "already-assigned" : ""}`} key={template.id}>
                 <input
                   type="checkbox"
                   checked={checked}
-                  disabled={alreadyAssigned}
-                  onChange={(e) => toggleSelection(template, e.target.checked)}
+                  disabled={locked}
+                  onChange={(e) => handleToggle(template, e.target.checked)}
                 />
                 <span className="template-check-body">
                   <span className="template-check-title">{template.title}</span>
@@ -171,21 +184,13 @@ export function ParentBuilder({
                     {QUEST_TYPE_LABEL[template.defaultType]} · {stat.emoji} {stat.name} · {template.defaultXp}XP
                   </span>
                   <span className="repeat-badge">[{repeatDaysLabel(template.repeatDays)}]</span>
-                  {alreadyAssigned && <span className="assigned-note">이미 등록된 퀘스트예요.</span>}
+                  {assignedQuest && <span className="assigned-note">선택한 날짜에 등록된 퀘스트예요.</span>}
+                  {locked && <span className="assigned-note">진행 중이거나 완료되어 여기서는 해제할 수 없어요.</span>}
                 </span>
               </label>
             );
           })}
         </div>
-
-        <button
-          type="button"
-          className="modal-btn dark"
-          disabled={assignableSelectedIds.length === 0}
-          onClick={handleAssign}
-        >
-          선택한 퀘스트 등록하기
-        </button>
       </div>
     </div>
   );

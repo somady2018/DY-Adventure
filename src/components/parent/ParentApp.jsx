@@ -54,6 +54,7 @@ export function ParentApp({ appState, actions, todayDate, onBackToKid, showToast
             assignedQuests={appState.assignedQuests}
             todayDate={todayDate}
             onAssignTemplateQuests={actions.assignTemplateQuests}
+            onRemoveTemplateQuestForDate={actions.removeTemplateQuestForDate}
             showToast={showToast}
           />
         )}

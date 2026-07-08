@@ -23,6 +23,13 @@ function isTemplateForDate(template, dateString) {
   return repeatDays.includes("daily") || repeatDays.includes(dayCode);
 }
 
+function isDailyTemplate(template) {
+  const repeatDays = Array.isArray(template.repeatDays) && template.repeatDays.length
+    ? template.repeatDays
+    : ["daily"];
+  return repeatDays.includes("daily");
+}
+
 export function ParentBuilder({
   questTemplates,
   assignedQuests,
@@ -34,6 +41,7 @@ export function ParentBuilder({
   const [customDate, setCustomDate] = useState(todayDate);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [deselectedDailyByDate, setDeselectedDailyByDate] = useState({});
 
   const selectedDate = dateChoice === "today"
     ? todayDate
@@ -56,13 +64,29 @@ export function ParentBuilder({
 
   const assignableSelectedIds = useMemo(() => {
     const visibleIds = new Set(visibleTemplates.map((template) => template.id));
-    return selectedIds.filter((id) => visibleIds.has(id) && !assignedTemplateIds.has(id));
-  }, [assignedTemplateIds, selectedIds, visibleTemplates]);
+    const deselectedDailyIds = new Set(deselectedDailyByDate[selectedDate] || []);
+    const autoDailyIds = visibleTemplates
+      .filter((template) => isDailyTemplate(template))
+      .map((template) => template.id)
+      .filter((id) => !deselectedDailyIds.has(id));
+    return Array.from(new Set([...autoDailyIds, ...selectedIds]))
+      .filter((id) => visibleIds.has(id) && !assignedTemplateIds.has(id));
+  }, [assignedTemplateIds, deselectedDailyByDate, selectedDate, selectedIds, visibleTemplates]);
 
-  function toggleSelection(templateId, checked) {
+  function toggleSelection(template, checked) {
+    if (isDailyTemplate(template)) {
+      setDeselectedDailyByDate((prev) => {
+        const current = new Set(prev[selectedDate] || []);
+        if (checked) current.delete(template.id);
+        else current.add(template.id);
+        return { ...prev, [selectedDate]: Array.from(current) };
+      });
+      return;
+    }
+
     setSelectedIds((prev) => {
-      if (checked) return Array.from(new Set([...prev, templateId]));
-      return prev.filter((id) => id !== templateId);
+      if (checked) return Array.from(new Set([...prev, template.id]));
+      return prev.filter((id) => id !== template.id);
     });
   }
 
@@ -71,6 +95,7 @@ export function ParentBuilder({
     if (result.added > 0) {
       showToast(`${formatDateKorean(selectedDate)} 퀘스트 ${result.added}개를 등록했어요.`, "success");
       setSelectedIds([]);
+      setDeselectedDailyByDate((prev) => ({ ...prev, [selectedDate]: [] }));
       return;
     }
     if (result.duplicates > 0) {
@@ -130,7 +155,7 @@ export function ParentBuilder({
         <div className="simple-template-list">
           {visibleTemplates.map((template) => {
             const alreadyAssigned = assignedTemplateIds.has(template.id);
-            const checked = alreadyAssigned || selectedIds.includes(template.id);
+            const checked = alreadyAssigned || assignableSelectedIds.includes(template.id);
             const stat = statMeta(template.ability);
             return (
               <label className={`template-check-row ${alreadyAssigned ? "already-assigned" : ""}`} key={template.id}>
@@ -138,7 +163,7 @@ export function ParentBuilder({
                   type="checkbox"
                   checked={checked}
                   disabled={alreadyAssigned}
-                  onChange={(e) => toggleSelection(template.id, e.target.checked)}
+                  onChange={(e) => toggleSelection(template, e.target.checked)}
                 />
                 <span className="template-check-body">
                   <span className="template-check-title">{template.title}</span>

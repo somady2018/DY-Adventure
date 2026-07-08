@@ -8,11 +8,17 @@ import {
 } from "../data/definitions";
 import { nowIso } from "./dateUtils";
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 export const STORAGE_KEY = "adventure.appState.v1";
 
 const VALID_TEMPLATE_TYPES = new Set(["required", "choice", "challenge", "bonus"]);
 const VALID_REPEAT_DAYS = new Set(REPEAT_DAY_OPTIONS.map((option) => option.key));
+const SYSTEM_TEMPLATE_NAMES = new Map(
+  SYSTEM_QUEST_TEMPLATES.map((template) => [
+    template.id,
+    { title: template.title, storyTitle: template.storyTitle },
+  ])
+);
 
 function emptyStatXp() {
   const obj = {};
@@ -96,10 +102,24 @@ function mergeSystemTemplates(templates, timestamp = nowIso()) {
 
   for (const systemTemplate of createSystemQuestTemplates(timestamp)) {
     const existing = byId.get(systemTemplate.id);
-    byId.set(systemTemplate.id, existing ? { ...systemTemplate, ...existing, source: "system" } : systemTemplate);
+    const syncedNames = SYSTEM_TEMPLATE_NAMES.get(systemTemplate.id);
+    byId.set(systemTemplate.id, existing ? {
+      ...systemTemplate,
+      ...existing,
+      ...syncedNames,
+      source: "system",
+    } : systemTemplate);
   }
 
   return Array.from(byId.values());
+}
+
+function syncSystemQuestNames(quests) {
+  if (!Array.isArray(quests)) return [];
+  return quests.map((quest) => {
+    const syncedNames = SYSTEM_TEMPLATE_NAMES.get(quest.templateId);
+    return syncedNames ? { ...quest, ...syncedNames } : quest;
+  });
 }
 
 function questSetsFromActiveTemplateIds(activeTemplateIds, templates) {
@@ -253,6 +273,7 @@ function migrateIfNeeded(parsed) {
   next.questSets = parsed.questSets
     ? normalizeQuestSets(parsed.questSets, next.questTemplates)
     : normalizeQuestSets(questSetsFromActiveTemplateIds(parsed.activeTemplateIds, next.questTemplates), next.questTemplates);
+  next.assignedQuests = syncSystemQuestNames(next.assignedQuests);
 
   return next;
 }

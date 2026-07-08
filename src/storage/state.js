@@ -1,14 +1,18 @@
 import {
   DEFAULT_ACTIVE_TEMPLATE_IDS,
   QUEST_TEMPLATES,
+  REPEAT_DAY_OPTIONS,
   STAT_LIST,
   SYSTEM_QUEST_TEMPLATES,
   normalizeGuildKey,
 } from "../data/definitions";
 import { nowIso } from "./dateUtils";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 6;
 export const STORAGE_KEY = "adventure.appState.v1";
+
+const VALID_TEMPLATE_TYPES = new Set(["required", "choice", "challenge", "bonus"]);
+const VALID_REPEAT_DAYS = new Set(REPEAT_DAY_OPTIONS.map((option) => option.key));
 
 function emptyStatXp() {
   const obj = {};
@@ -38,11 +42,19 @@ function clampTemplateXp(xp) {
   return Math.min(12, Math.max(4, Math.round(value)));
 }
 
+export function normalizeRepeatDays(days) {
+  if (!Array.isArray(days) || days.length === 0) return ["daily"];
+  const clean = Array.from(new Set(days.filter((day) => VALID_REPEAT_DAYS.has(day))));
+  if (clean.includes("daily")) return ["daily"];
+  return clean.length ? clean : ["daily"];
+}
+
 function normalizeQuestTemplate(template, fallbackId, timestamp = nowIso()) {
   const id = template.id || template.templateId || fallbackId || `custom_${Date.now()}`;
   const ability = template.ability || template.statKey || template.rewards?.[0]?.statKey || "life";
   const defaultXp = clampTemplateXp(template.defaultXp ?? template.xp);
-  const defaultType = template.defaultType || template.type || "choice";
+  const typeCandidate = template.defaultType || template.type;
+  const defaultType = VALID_TEMPLATE_TYPES.has(typeCandidate) ? typeCandidate : "choice";
   return {
     id,
     source: template.source === "system" ? "system" : "custom",
@@ -52,6 +64,7 @@ function normalizeQuestTemplate(template, fallbackId, timestamp = nowIso()) {
     ability,
     defaultXp,
     defaultType,
+    repeatDays: normalizeRepeatDays(template.repeatDays),
     emoji: template.emoji || STAT_LIST.find((s) => s.key === ability)?.emoji || "✨",
     rewards: Array.isArray(template.rewards) ? template.rewards : null,
     guildTone: template.guildTone || "common",
@@ -71,6 +84,7 @@ function legacyTemplatesFromCode(timestamp = nowIso()) {
     ability: template.statKey,
     defaultXp: template.xp,
     defaultType: template.type,
+    repeatDays: ["daily"],
     isActive: true,
   }, template.templateId, timestamp));
 }

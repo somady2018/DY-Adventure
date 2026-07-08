@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { QUEST_TYPE_LABEL, STAT_LIST, XP_MAX, XP_MIN } from "../../data/definitions";
+import {
+  QUEST_TYPE_LABEL,
+  REPEAT_DAY_OPTIONS,
+  STAT_LIST,
+  XP_MAX,
+  XP_MIN,
+  repeatDaysLabel,
+} from "../../data/definitions";
 
 const EMPTY_TEMPLATE = {
   id: null,
@@ -9,6 +16,7 @@ const EMPTY_TEMPLATE = {
   ability: "life",
   defaultXp: 6,
   defaultType: "choice",
+  repeatDays: ["daily"],
   isActive: true,
 };
 
@@ -45,6 +53,7 @@ export function ParentTemplateManager({
       ability: template.ability,
       defaultXp: template.defaultXp,
       defaultType: template.defaultType,
+      repeatDays: Array.isArray(template.repeatDays) && template.repeatDays.length ? template.repeatDays : ["daily"],
       isActive: template.isActive !== false,
     });
   }
@@ -57,6 +66,7 @@ export function ParentTemplateManager({
       storyTitle: editing.storyTitle.trim() || editing.title.trim(),
       description: editing.description.trim(),
       defaultXp: clampXp(editing.defaultXp),
+      repeatDays: editing.repeatDays?.length ? editing.repeatDays : ["daily"],
       source: isSystemEditing ? "system" : "custom",
     });
     showToast(isEditingExisting ? "템플릿을 수정했어요" : "새 템플릿을 만들었어요", "success");
@@ -106,8 +116,9 @@ export function ParentTemplateManager({
               </div>
             </div>
             <div className="template-desc">{template.description}</div>
+            <div className="repeat-badge" style={{ marginTop: 8 }}>[{repeatDaysLabel(template.repeatDays)}]</div>
             <div className="template-action-row">
-              {template.source !== "system" && <button type="button" className="pbtn-text" onClick={() => handleEdit(template)}>수정</button>}
+              <button type="button" className="pbtn-text" onClick={() => handleEdit(template)}>수정</button>
               <button type="button" className="pbtn-text" onClick={() => onToggleTemplateActive(template.id)}>
                 {template.isActive === false ? "활성화" : "비활성화"}
               </button>
@@ -162,6 +173,12 @@ function TemplateForm({ editing, isSystemEditing, setEditing, onSave, onCancel }
         <button type="button" onClick={() => setEditing((prev) => ({ ...prev, defaultXp: clampXp(prev.defaultXp + 1) }))} aria-label="경험치 늘리기">+</button>
       </div>
 
+      <div className="field-label">반복 요일</div>
+      <RepeatDaysPicker
+        value={editing.repeatDays}
+        onChange={(repeatDays) => setEditing((prev) => ({ ...prev, repeatDays }))}
+      />
+
       <label className="checkbox-row">
         <input type="checkbox" checked={editing.isActive} onChange={(e) => setEditing((prev) => ({ ...prev, isActive: e.target.checked }))} />
         <span>활성화</span>
@@ -171,6 +188,40 @@ function TemplateForm({ editing, isSystemEditing, setEditing, onSave, onCancel }
         <button type="button" className="pbtn-text dark" disabled={!editing.title.trim()} onClick={onSave}>저장</button>
         {editing.id && <button type="button" className="pbtn-text" onClick={onCancel}>새 템플릿 작성</button>}
       </div>
+    </div>
+  );
+}
+
+function RepeatDaysPicker({ value, onChange }) {
+  const repeatDays = Array.isArray(value) ? value : ["daily"];
+  const daily = repeatDays.includes("daily");
+
+  function toggle(day, checked) {
+    if (day === "daily") {
+      onChange(checked ? ["daily"] : []);
+      return;
+    }
+
+    const current = repeatDays.filter((item) => item !== "daily");
+    const next = checked
+      ? Array.from(new Set([...current, day]))
+      : current.filter((item) => item !== day);
+    onChange(next.length ? next : ["daily"]);
+  }
+
+  return (
+    <div className="repeat-day-grid">
+      {REPEAT_DAY_OPTIONS.map((option) => (
+        <label className={`repeat-day-option ${daily && option.key !== "daily" ? "disabled" : ""}`} key={option.key}>
+          <input
+            type="checkbox"
+            checked={repeatDays.includes(option.key)}
+            disabled={daily && option.key !== "daily"}
+            onChange={(e) => toggle(option.key, e.target.checked)}
+          />
+          <span>{option.label}</span>
+        </label>
+      ))}
     </div>
   );
 }

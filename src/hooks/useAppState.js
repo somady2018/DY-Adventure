@@ -163,6 +163,42 @@ export function useAppState() {
     return result;
   }, []);
 
+  const assignTemplateQuests = useCallback((templateIds, dateString) => {
+    let result = { added: 0, duplicates: 0 };
+    setState((prev) => {
+      const selectedIds = Array.from(new Set(Array.isArray(templateIds) ? templateIds : []));
+      if (selectedIds.length === 0) return prev;
+
+      const existing = new Set(
+        prev.assignedQuests
+          .filter((quest) => quest.date === dateString && quest.templateId)
+          .map((quest) => quest.templateId)
+      );
+      const templates = new Map(prev.questTemplates.map((template) => [template.id, template]));
+      const newQuests = [];
+      let duplicates = 0;
+
+      selectedIds.forEach((templateId) => {
+        const template = templates.get(templateId);
+        if (!template || template.isActive === false) return;
+        if (existing.has(templateId)) {
+          duplicates += 1;
+          return;
+        }
+        existing.add(templateId);
+        newQuests.push(buildQuestFromTemplate(template, dateString, {
+          type: template.defaultType,
+          xp: template.defaultXp,
+        }));
+      });
+
+      result = { added: newQuests.length, duplicates };
+      if (newQuests.length === 0) return prev;
+      return { ...prev, assignedQuests: [...prev.assignedQuests, ...newQuests] };
+    });
+    return result;
+  }, []);
+
   const assignQuestSet = useCallback((dateString) => {
     let result = { added: 0, duplicates: 0 };
     setState((prev) => {
@@ -361,6 +397,7 @@ export function useAppState() {
     deleteQuestTemplate,
     setQuestSetMembership,
     assignTemplateQuest,
+    assignTemplateQuests,
     assignQuestSet,
     toggleTemplateActive,
     ensureTemplatesAssignedForDate,

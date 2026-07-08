@@ -269,6 +269,35 @@ export const QUEST_TYPE_SHORT_LABEL = {
   bonus: "보너스",
 };
 
+export const REPEAT_DAY_OPTIONS = [
+  { key: "daily", label: "매일" },
+  { key: "mon", label: "월" },
+  { key: "tue", label: "화" },
+  { key: "wed", label: "수" },
+  { key: "thu", label: "목" },
+  { key: "fri", label: "금" },
+  { key: "sat", label: "토" },
+  { key: "sun", label: "일" },
+];
+
+export const WEEKDAY_LABELS = {
+  mon: "월요일",
+  tue: "화요일",
+  wed: "수요일",
+  thu: "목요일",
+  fri: "금요일",
+  sat: "토요일",
+  sun: "일요일",
+};
+
+export function repeatDaysLabel(repeatDays = ["daily"]) {
+  if (!Array.isArray(repeatDays) || repeatDays.length === 0 || repeatDays.includes("daily")) return "매일";
+  const labels = REPEAT_DAY_OPTIONS
+    .filter((option) => option.key !== "daily" && repeatDays.includes(option.key))
+    .map((option) => option.label);
+  return labels.length ? labels.join("·") : "매일";
+}
+
 export const SYSTEM_QUEST_TEMPLATES = [
   {
     id: "base_wash",
@@ -279,6 +308,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     ability: "life",
     defaultXp: 5,
     defaultType: "required",
+    repeatDays: ["daily"],
     emoji: "🧼",
     isActive: true,
   },
@@ -291,6 +321,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     ability: "knowledge",
     defaultXp: 6,
     defaultType: "choice",
+    repeatDays: ["daily"],
     emoji: "📖",
     isActive: true,
   },
@@ -303,6 +334,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     ability: "life",
     defaultXp: 5,
     defaultType: "required",
+    repeatDays: ["daily"],
     emoji: "🎒",
     isActive: true,
   },
@@ -315,6 +347,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     ability: "grit",
     defaultXp: 5,
     defaultType: "required",
+    repeatDays: ["daily"],
     emoji: "🥣",
     isActive: true,
   },
@@ -327,6 +360,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     ability: "life",
     defaultXp: 5,
     defaultType: "choice",
+    repeatDays: ["daily"],
     emoji: "🧺",
     isActive: true,
   },
@@ -339,6 +373,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     ability: "heart",
     defaultXp: 5,
     defaultType: "choice",
+    repeatDays: ["daily"],
     emoji: "💛",
     isActive: true,
   },

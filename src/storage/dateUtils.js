@@ -36,6 +36,25 @@ export function tomorrowSeoulDateString(baseDate = new Date()) {
   return addDaysToDateString(todaySeoulDateString(baseDate), 1);
 }
 
+export function weekdayCodeForDateString(dateString) {
+  const [y, m, d] = dateString.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][dt.getUTCDay()];
+}
+
+export function koreanWeekdayForDateString(dateString) {
+  const labels = {
+    mon: "월요일",
+    tue: "화요일",
+    wed: "수요일",
+    thu: "목요일",
+    fri: "금요일",
+    sat: "토요일",
+    sun: "일요일",
+  };
+  return labels[weekdayCodeForDateString(dateString)];
+}
+
 export function isWithinLastNDays(dateString, n, baseDate = new Date()) {
   const today = todaySeoulDateString(baseDate);
   const cutoff = addDaysToDateString(today, -(n - 1));

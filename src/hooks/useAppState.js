@@ -17,6 +17,33 @@ import { nowIso } from "../storage/dateUtils";
 import { hashPin, verifyPin } from "../storage/pin";
 import { characterLevelFromTotalXp, getQuestRewards, normalizeGuildKey } from "../data/definitions";
 
+function repeatDays(template) {
+  return Array.isArray(template.repeatDays) && template.repeatDays.length
+    ? template.repeatDays
+    : ["daily"];
+}
+
+function isDailyTemplate(template) {
+  return repeatDays(template).includes("daily");
+}
+
+function buildMissingDailyTemplateQuests(state, dateString) {
+  const existing = new Set(
+    state.assignedQuests
+      .filter((quest) => quest.date === dateString && quest.templateId)
+      .map((quest) => quest.templateId)
+  );
+
+  return state.questTemplates
+    .filter((template) => template.isActive !== false)
+    .filter((template) => isDailyTemplate(template))
+    .filter((template) => !existing.has(template.id))
+    .map((template) => buildQuestFromTemplate(template, dateString, {
+      type: template.defaultType,
+      xp: template.defaultXp,
+    }));
+}
+
 export function useAppState() {
   const [state, setState] = useState(() => loadState());
   const isFirstRender = useRef(true);
@@ -260,7 +287,14 @@ export function useAppState() {
     toggleQuestTemplateActive(templateId);
   }, [toggleQuestTemplateActive]);
 
-  const ensureTemplatesAssignedForDate = useCallback(() => {}, []);
+  const ensureTemplatesAssignedForDate = useCallback((dateString) => {
+    if (!dateString) return;
+    setState((prev) => {
+      const newQuests = buildMissingDailyTemplateQuests(prev, dateString);
+      if (newQuests.length === 0) return prev;
+      return { ...prev, assignedQuests: [...prev.assignedQuests, ...newQuests] };
+    });
+  }, []);
 
   const assignCustomQuest = useCallback((input) => {
     let savedTemplate = null;

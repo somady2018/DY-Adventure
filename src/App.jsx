@@ -18,9 +18,9 @@ export default function App() {
   const [mode, setMode] = useState("kid");
   const [todayDate, setTodayDate] = useState(() => todaySeoulDateString());
 
-  // 오늘 활성화된 매일 템플릿들이 아직 오늘 날짜로 배정되지 않았다면 배정합니다.
+  // 오늘 날짜에 해당하는 반복 템플릿들이 아직 배정되지 않았다면 배정합니다.
   // (최초 실행 시 + 자정을 넘겨 날짜가 바뀌었을 때)
-  const dailyTemplateKey = state.questTemplates
+  const scheduledTemplateKey = state.questTemplates
     .filter((template) => template.isActive !== false)
     .map((template) => `${template.id}:${template.defaultType}:${template.defaultXp}:${(template.repeatDays || []).join(",")}`)
     .join("|");
@@ -28,7 +28,7 @@ export default function App() {
   useEffect(() => {
     if (!state.profile?.guild) return;
     ensureTemplatesAssignedForDate(todayDate);
-  }, [dailyTemplateKey, ensureTemplatesAssignedForDate, state.createdAt, state.profile?.guild, todayDate]);
+  }, [ensureTemplatesAssignedForDate, scheduledTemplateKey, state.createdAt, state.profile?.guild, todayDate]);
 
   // 자정 경과를 감지해 todayDate를 갱신 (앱을 켜둔 채로 날짜가 바뀌는 경우 대비)
   useEffect(() => {

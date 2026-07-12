@@ -13,7 +13,7 @@ import {
   parseImportedStateJson,
   STORAGE_KEY,
 } from "../storage/state";
-import { nowIso } from "../storage/dateUtils";
+import { nowIso, weekdayCodeForDateString } from "../storage/dateUtils";
 import { hashPin, verifyPin } from "../storage/pin";
 import { characterLevelFromTotalXp, getQuestRewards, normalizeGuildKey } from "../data/definitions";
 
@@ -23,11 +23,12 @@ function repeatDays(template) {
     : ["daily"];
 }
 
-function isDailyTemplate(template) {
-  return repeatDays(template).includes("daily");
+function isTemplateForDate(template, dateString) {
+  const days = repeatDays(template);
+  return days.includes("daily") || days.includes(weekdayCodeForDateString(dateString));
 }
 
-function buildMissingDailyTemplateQuests(state, dateString) {
+function buildMissingScheduledTemplateQuests(state, dateString) {
   const existing = new Set(
     state.assignedQuests
       .filter((quest) => quest.date === dateString && quest.templateId)
@@ -36,7 +37,7 @@ function buildMissingDailyTemplateQuests(state, dateString) {
 
   return state.questTemplates
     .filter((template) => template.isActive !== false)
-    .filter((template) => isDailyTemplate(template))
+    .filter((template) => isTemplateForDate(template, dateString))
     .filter((template) => !existing.has(template.id))
     .map((template) => buildQuestFromTemplate(template, dateString, {
       type: template.defaultType,
@@ -290,7 +291,7 @@ export function useAppState() {
   const ensureTemplatesAssignedForDate = useCallback((dateString) => {
     if (!dateString) return;
     setState((prev) => {
-      const newQuests = buildMissingDailyTemplateQuests(prev, dateString);
+      const newQuests = buildMissingScheduledTemplateQuests(prev, dateString);
       if (newQuests.length === 0) return prev;
       return { ...prev, assignedQuests: [...prev.assignedQuests, ...newQuests] };
     });

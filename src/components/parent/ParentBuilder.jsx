@@ -26,10 +26,6 @@ function isTemplateForDate(template, dateString) {
   return days.includes("daily") || days.includes(dayCode);
 }
 
-function isDailyTemplate(template) {
-  return repeatDays(template).includes("daily");
-}
-
 export function ParentBuilder({
   questTemplates,
   assignedQuests,
@@ -41,7 +37,7 @@ export function ParentBuilder({
   const [dateChoice, setDateChoice] = useState("today");
   const [customDate, setCustomDate] = useState(todayDate);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
-  const [deselectedDailyByDate, setDeselectedDailyByDate] = useState({});
+  const [deselectedScheduledByDate, setDeselectedScheduledByDate] = useState({});
   const selectedDate = dateChoice === "today"
     ? todayDate
     : dateChoice === "tomorrow"
@@ -63,23 +59,24 @@ export function ParentBuilder({
     return map;
   }, [assignedQuests, selectedDate]);
 
-  const autoDailyTemplateIds = useMemo(() => (
+  const autoScheduledTemplateIds = useMemo(() => (
     visibleTemplates
-      .filter((template) => isDailyTemplate(template))
-      .filter((template) => !(deselectedDailyByDate[selectedDate] || []).includes(template.id))
+      .filter((template) => isTemplateForDate(template, selectedDate))
+      .filter((template) => !(deselectedScheduledByDate[selectedDate] || []).includes(template.id))
       .filter((template) => !assignedByTemplateId.has(template.id))
       .map((template) => template.id)
-  ), [assignedByTemplateId, deselectedDailyByDate, selectedDate, visibleTemplates]);
+  ), [assignedByTemplateId, deselectedScheduledByDate, selectedDate, visibleTemplates]);
 
   useEffect(() => {
-    if (autoDailyTemplateIds.length === 0) return;
-    onAssignTemplateQuests(autoDailyTemplateIds, selectedDate);
-  }, [autoDailyTemplateIds, onAssignTemplateQuests, selectedDate]);
+    if (autoScheduledTemplateIds.length === 0) return;
+    onAssignTemplateQuests(autoScheduledTemplateIds, selectedDate);
+  }, [autoScheduledTemplateIds, onAssignTemplateQuests, selectedDate]);
 
   function handleToggle(template, checked) {
+    const scheduled = isTemplateForDate(template, selectedDate);
     if (checked) {
-      if (isDailyTemplate(template)) {
-        setDeselectedDailyByDate((prev) => {
+      if (scheduled) {
+        setDeselectedScheduledByDate((prev) => {
           const current = (prev[selectedDate] || []).filter((id) => id !== template.id);
           return { ...prev, [selectedDate]: current };
         });
@@ -91,9 +88,8 @@ export function ParentBuilder({
       return;
     }
 
-    const daily = isDailyTemplate(template);
-    if (daily) {
-      setDeselectedDailyByDate((prev) => {
+    if (scheduled) {
+      setDeselectedScheduledByDate((prev) => {
         const current = new Set(prev[selectedDate] || []);
         current.add(template.id);
         return { ...prev, [selectedDate]: Array.from(current) };
@@ -109,7 +105,7 @@ export function ParentBuilder({
       showToast("이미 진행 중이거나 완료된 퀘스트는 여기서 제외하지 않았어요.", "error");
       return;
     }
-    if (daily) {
+    if (scheduled) {
       showToast(`"${template.title}" 퀘스트를 오늘은 제외했어요.`, "success");
       return;
     }
@@ -166,8 +162,8 @@ export function ParentBuilder({
         <div className="simple-template-list">
           {visibleTemplates.map((template) => {
             const assignedQuest = assignedByTemplateId.get(template.id);
-            const dailyDeselected = (deselectedDailyByDate[selectedDate] || []).includes(template.id);
-            const checked = !!assignedQuest || (isDailyTemplate(template) && !dailyDeselected);
+            const scheduledDeselected = (deselectedScheduledByDate[selectedDate] || []).includes(template.id);
+            const checked = !!assignedQuest || (isTemplateForDate(template, selectedDate) && !scheduledDeselected);
             const locked = assignedQuest && assignedQuest.status !== "open";
             const stat = statMeta(template.ability);
             return (

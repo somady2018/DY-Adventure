@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { STATS, getQuestRewards } from "../../data/definitions";
+import { formatDateKorean } from "../../storage/dateUtils";
 import { particle } from "../../utils/korean";
 
 function rewardSummary(quest) {
@@ -8,12 +9,13 @@ function rewardSummary(quest) {
     .join(" · ");
 }
 
-export function ParentToday({ quests, profile, onApprove, onRequestRetry }) {
+export function ParentToday({ quests, overduePendingQuests = [], profile, onApprove, onRequestRetry }) {
   const [approvingId, setApprovingId] = useState(null);
   const [retryTargetId, setRetryTargetId] = useState(null);
   const [retryReason, setRetryReason] = useState("");
 
   const pending = quests.filter((q) => q.status === "pending");
+  const allPending = [...overduePendingQuests, ...pending];
   const approved = quests.filter((q) => q.status === "approved");
   const others = quests.filter((q) => q.status === "open" || q.status === "retry");
 
@@ -43,10 +45,42 @@ export function ParentToday({ quests, profile, onApprove, onRequestRetry }) {
           <div className="metric-label">오늘 완료한 퀘스트</div>
         </div>
         <div className="metric-box">
-          <div className="metric-num">{pending.length}</div>
+          <div className="metric-num">{allPending.length}</div>
           <div className="metric-label">확인 기다리는 중</div>
         </div>
       </div>
+
+      {overduePendingQuests.length > 0 && (
+        <div className="parent-card">
+          <div className="parent-card-title">⏳ 지난 날짜 확인 대기</div>
+          <div className="parent-card-sub">
+            어제 이전에 완료를 알려왔지만 아직 승인하지 않은 퀘스트예요. 승인하면 원래 날짜 기록으로 경험치가 반영돼요.
+          </div>
+          <div style={{ marginTop: 4 }}>
+            {overduePendingQuests.map((q) => (
+              <div className="pending-row" key={q.id}>
+                <div className="pending-emoji" aria-hidden="true">{q.emoji}</div>
+                <div className="pending-info">
+                  <div className="pending-title">{q.title}</div>
+                  <div className="pending-meta">{formatDateKorean(q.date)} · {rewardSummary(q)} 예정</div>
+                </div>
+                <div className="pending-actions">
+                  <button type="button" className="pbtn reject" onClick={() => openRetryPrompt(q.id)} aria-label={`${q.title} 재도전 요청`}>↺</button>
+                  <button
+                    type="button"
+                    className="pbtn approve"
+                    onClick={() => handleApprove(q.id)}
+                    disabled={approvingId === q.id}
+                    aria-label={`${q.title} 승인`}
+                  >
+                    ✓
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="parent-card">
         <div className="parent-card-title">⏳ 확인 대기</div>

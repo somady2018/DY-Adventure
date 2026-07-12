@@ -11,6 +11,9 @@ import { getGuildMeta } from "../../data/definitions";
 export function ParentApp({ appState, actions, todayDate, onBackToKid, showToast }) {
   const [tab, setTab] = useState("today");
   const todayQuests = questsForDate(appState.assignedQuests, todayDate);
+  const overduePendingQuests = appState.assignedQuests.filter(
+    (quest) => quest.status === "pending" && quest.date < todayDate
+  );
   const profile = appState.profile || { childName: "도영", guild: "adventurer" };
   const guild = getGuildMeta(profile.guild);
 
@@ -43,6 +46,7 @@ export function ParentApp({ appState, actions, todayDate, onBackToKid, showToast
         {tab === "today" && (
           <ParentToday
             quests={todayQuests}
+            overduePendingQuests={overduePendingQuests}
             profile={profile}
             onApprove={actions.approveQuest}
             onRequestRetry={actions.requestRetry}

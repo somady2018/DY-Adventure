@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GUILDS, GUILD_KEYS } from "../../data/definitions";
+import { GUILDS, GUILD_KEYS, getGuildTheme } from "../../data/definitions";
 
 export function Onboarding({ onComplete }) {
   const [childName, setChildName] = useState("");
@@ -32,12 +32,18 @@ export function Onboarding({ onComplete }) {
         <div className="guild-grid">
           {GUILD_KEYS.map((key) => {
             const meta = GUILDS[key];
+            const theme = getGuildTheme(key);
             const selected = guild === key;
             return (
               <button
                 type="button"
                 key={key}
                 className={`guild-card ${selected ? "selected" : ""}`}
+                style={{
+                  "--guild-card-primary": theme.primary,
+                  "--guild-card-soft": theme.primarySoft,
+                  "--guild-card-accent": theme.accent,
+                }}
                 onClick={() => setGuild(key)}
                 aria-pressed={selected}
               >

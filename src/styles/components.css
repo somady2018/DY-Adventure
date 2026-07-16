@@ -8,10 +8,10 @@
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .modal-card {
-  background: var(--paper-light); border-radius: 22px;
-  padding: 26px 24px 22px; text-align: center;
+  background: var(--card); border-radius: 24px;
+  padding: 28px 24px 24px; text-align: center;
   max-width: 320px; width: 100%;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 50px rgba(59,59,59,0.22);
   animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes popIn {
@@ -19,31 +19,49 @@
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.modal-card.reward { border: 2px solid var(--amber); }
+.modal-card.reward { border: 2px solid var(--amber); position: relative; overflow: hidden; }
+.modal-card.reward::before {
+  content: "⭐";
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  color: var(--amber);
+  opacity: 0.7;
+  animation: sparklePulse 0.9s ease both;
+}
 .stamp-circle {
   width: 86px; height: 86px; border-radius: 50%;
   background: var(--amber-light); border: 3px solid var(--amber);
   display: flex; align-items: center; justify-content: center; font-size: 42px;
   margin: 0 auto 14px;
-  animation: stampHit 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+  animation: stampHit 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
 }
 @keyframes stampHit {
   0% { transform: scale(2) rotate(-15deg); opacity: 0; }
   60% { transform: scale(0.9) rotate(4deg); opacity: 1; }
   100% { transform: scale(1) rotate(0deg); }
 }
+@keyframes sparklePulse {
+  0% { transform: scale(0.4) rotate(-14deg); opacity: 0; }
+  55% { transform: scale(1.22) rotate(6deg); opacity: 0.95; }
+  100% { transform: scale(1) rotate(0deg); opacity: 0.72; }
+}
 .modal-headline { font-family: var(--font-display); font-size: 18px; color: var(--ink); margin-bottom: 6px; }
 .modal-sub { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 16px; }
 .modal-stat-gain { font-size: 14px; font-weight: 800; color: var(--amber-dark); margin-bottom: 10px; }
+.modal-card.reward .modal-stat-gain { animation: xpFloat 0.7s ease both; }
 
 .modal-btn {
-  border: none; border-radius: 14px; padding: 12px 0; width: 100%;
+  border: none; border-radius: 18px; padding: 14px 0; width: 100%;
   font-weight: 800; font-size: 14.5px;
   background: var(--moss); color: white;
+  box-shadow: 0 5px 0 rgba(59,59,59,0.10), var(--soft-shadow);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
+.modal-btn:hover { transform: translateY(-1px); }
 .modal-btn:active { transform: scale(0.97); }
 .modal-btn.ghost { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line); margin-top: 8px; }
-.modal-btn.dark { background: #233140; }
+.modal-btn.dark { background: var(--guild-primary-deep); }
 .modal-btn.danger { background: var(--coral); }
 
 .modal-quest-emoji-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; text-align: left; }
@@ -64,9 +82,12 @@
 .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 240px; margin: 0 auto; }
 .pin-key {
   aspect-ratio: 1; border-radius: 50%; border: 1.5px solid var(--line);
-  background: var(--paper-light); font-size: 19px; font-weight: 700; color: var(--ink);
+  background: var(--card); font-size: 19px; font-weight: 700; color: var(--ink);
+  box-shadow: var(--soft-shadow);
+  transition: transform 0.16s ease;
 }
-.pin-key:active { background: var(--paper-dark); }
+.pin-key:hover { transform: translateY(-1px); }
+.pin-key:active { background: var(--paper-dark); transform: scale(0.97); }
 .pin-key.empty { visibility: hidden; }
 .pin-error-text { color: var(--coral-dark); font-size: 12px; font-weight: 700; margin-top: 14px; min-height: 16px; }
 
@@ -78,12 +99,26 @@
 }
 .onboarding-panel {
   width: 100%;
-  background: var(--paper-light);
+  background: var(--card);
   border: 1.5px solid var(--line);
-  border-radius: 22px;
-  padding: 22px 18px 18px;
-  box-shadow: 0 10px 26px rgba(31,58,92,0.14);
+  border-radius: 24px;
+  padding: 24px 18px 20px;
+  box-shadow: var(--toy-shadow);
+  position: relative;
+  overflow: hidden;
 }
+.onboarding-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 12%, var(--guild-primary) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 78% 28%, var(--guild-accent) 0 2px, transparent 2.5px);
+  background-size: 64px 64px;
+  opacity: 0.07;
+  pointer-events: none;
+}
+.onboarding-panel > * { position: relative; z-index: 1; }
 .onboarding-kicker {
   font-size: 11px;
   font-weight: 900;
@@ -114,20 +149,30 @@
 .guild-card {
   border: 1.5px solid var(--line);
   background: white;
-  border-radius: 14px;
-  padding: 12px 10px;
+  border-radius: 18px;
+  padding: 13px 11px;
   text-align: left;
   min-height: 112px;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
+.guild-card:hover { transform: translateY(-1px); }
+.guild-card:active { transform: scale(0.97); }
 .guild-card.selected {
-  border-color: var(--moss);
-  background: var(--moss-light);
-  box-shadow: 0 0 0 2px rgba(91,123,90,0.12);
+  border-color: var(--guild-card-primary, var(--moss));
+  background: var(--guild-card-soft, var(--moss-light));
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.85), var(--soft-shadow);
 }
 .guild-card-icon {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--guild-card-soft, var(--moss-light));
   font-size: 24px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  box-shadow: inset 0 -2px 0 rgba(59,59,59,0.06);
 }
 .guild-card-name {
   display: block;
@@ -147,8 +192,23 @@
 }
 .guild-letter-card {
   text-align: left;
-  border-radius: 18px;
+  border-radius: 22px;
+  border-top: 8px solid var(--guild-primary);
+  position: relative;
+  overflow: hidden;
 }
+.guild-letter-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 16% 18%, var(--guild-primary) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 86% 42%, var(--guild-accent) 0 2px, transparent 2.5px);
+  background-size: 58px 58px;
+  opacity: 0.06;
+  pointer-events: none;
+}
+.guild-letter-card > * { position: relative; z-index: 1; }
 .guild-letter-title {
   display: flex;
   align-items: center;
@@ -180,30 +240,31 @@
 }
 
 /* ============ PARENT MODE ============ */
-.parent-screen { background: #F6F4EF; }
+.parent-screen { background: var(--paper); }
 .parent-screen .topbar-title { color: #233140; font-family: var(--font-body); font-weight: 800; }
-.parent-card { background: white; border: 1px solid rgba(35,49,64,0.10); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+.parent-card { background: var(--card); border: 1px solid rgba(59,59,59,0.10); border-radius: 20px; padding: 16px 18px; margin-bottom: 12px; box-shadow: var(--soft-shadow); }
 .parent-card-title { font-weight: 800; font-size: 13.5px; color: #233140; }
 .parent-card-sub { font-size: 12px; color: #6B7785; margin-top: 2px; line-height: 1.5; }
 
 .pending-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(35,49,64,0.08); }
 .pending-row:last-child { border-bottom: none; }
-.pending-emoji { width: 36px; height: 36px; border-radius: 10px; background: #EFF3EE; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.pending-emoji { width: 38px; height: 38px; border-radius: 50%; background: var(--guild-primary-soft); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .pending-info { flex: 1; min-width: 0; }
 .pending-title { font-weight: 700; font-size: 13px; color: #233140; }
 .pending-meta { font-size: 11px; color: #8A95A1; margin-top: 1px; }
 .pending-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.pbtn { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid rgba(35,49,64,0.15); background: white; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.pbtn { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid rgba(35,49,64,0.15); background: white; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: transform 0.16s ease; }
+.pbtn:hover { transform: translateY(-1px); }
 .pbtn:active { transform: scale(0.9); }
 .pbtn.approve { background: var(--moss); border-color: var(--moss-dark); color: white; }
 .pbtn.reject { background: white; color: var(--coral); border-color: var(--coral); }
 
 .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
-.metric-box { background: white; border: 1px solid rgba(35,49,64,0.10); border-radius: 14px; padding: 13px 14px; }
+.metric-box { background: white; border: 1px solid rgba(35,49,64,0.10); border-radius: 18px; padding: 14px 15px; box-shadow: var(--soft-shadow); }
 .metric-num { font-family: var(--font-display); font-size: 22px; color: #233140; }
 .metric-label { font-size: 11.5px; color: #8A95A1; margin-top: 2px; font-weight: 600; }
 
-.weekly-story-box { background: linear-gradient(135deg, #2C3F30 0%, #233140 100%); border-radius: 16px; padding: 18px 18px 16px; color: white; margin-bottom: 14px; }
+.weekly-story-box { background: linear-gradient(135deg, var(--guild-primary-deep) 0%, #3B3B3B 100%); border-radius: 22px; padding: 19px 18px 17px; color: white; margin-bottom: 14px; box-shadow: var(--soft-shadow); }
 .weekly-story-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 .weekly-story-text { font-family: var(--font-serif); font-size: 14.5px; line-height: 1.7; color: rgba(255,255,255,0.95); }
 
@@ -214,20 +275,21 @@
 .qb-label { flex: 1; font-size: 13.5px; color: #233140; font-weight: 600; }
 .qb-stat-tag { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 8px; flex-shrink: 0; border: none; }
 
-.seg-control { display: flex; flex-wrap: wrap; background: #EAE7DF; border-radius: 10px; padding: 3px; margin-bottom: 14px; }
-.seg-control button { flex: 1; border: none; background: transparent; padding: 8px 0; font-size: 12.5px; font-weight: 700; color: #6B7785; border-radius: 8px; }
-.seg-control button.active { background: white; color: #233140; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.seg-control { display: flex; flex-wrap: wrap; background: var(--guild-primary-soft); border-radius: 16px; padding: 4px; margin-bottom: 14px; }
+.seg-control button { flex: 1; border: none; background: transparent; padding: 9px 0; font-size: 12.5px; font-weight: 800; color: #6B7785; border-radius: 13px; transition: transform 0.16s ease; }
+.seg-control button:hover { transform: translateY(-1px); }
+.seg-control button.active { background: white; color: var(--guild-primary-deep); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
-.child-switch-pill { display: inline-flex; align-items: center; gap: 6px; background: #EFEDE6; border-radius: 20px; padding: 5px 12px 5px 5px; font-size: 12px; font-weight: 700; color: #233140; margin-bottom: 14px; border: none; }
-.child-switch-pill .csp-avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--moss-light); display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.child-switch-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--guild-primary-soft); border-radius: 999px; padding: 6px 13px 6px 6px; font-size: 12px; font-weight: 800; color: #233140; margin-bottom: 14px; border: none; }
+.child-switch-pill .csp-avatar { width: 24px; height: 24px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 12px; }
 
 .field-label { font-size: 11.5px; font-weight: 700; color: #6B7785; margin-bottom: 5px; }
 .text-input {
-  width: 100%; padding: 10px 12px; border-radius: 10px;
+  width: 100%; padding: 11px 13px; border-radius: 14px;
   border: 1px solid rgba(35,49,64,0.15); font-size: 13.5px; margin-bottom: 12px;
   background: white; color: #233140;
 }
-.textarea-input { width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(35,49,64,0.15); font-size: 13px; resize: none; background: white; color: #233140; }
+.textarea-input { width: 100%; min-height: 64px; padding: 11px 13px; border-radius: 14px; border: 1px solid rgba(35,49,64,0.15); font-size: 13px; resize: none; background: white; color: #233140; }
 
 .guild-select-list {
   display: grid;
@@ -241,7 +303,7 @@
   width: 100%;
   text-align: left;
   border: 1.5px solid rgba(35,49,64,0.12);
-  border-radius: 12px;
+  border-radius: 16px;
   background: white;
   padding: 10px 11px;
 }
@@ -252,8 +314,8 @@
 .guild-select-icon {
   width: 34px;
   height: 34px;
-  border-radius: 12px;
-  background: var(--paper-light);
+  border-radius: 50%;
+  background: var(--guild-primary-soft);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -275,17 +337,18 @@
 }
 
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.chip-btn { padding: 6px 10px; border-radius: 10px; font-size: 11.5px; font-weight: 700; border: none; background: #F1EFE8; color: #6B7785; }
+.chip-btn { padding: 7px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 800; border: none; background: #F1EFE8; color: #6B7785; transition: transform 0.16s ease; }
+.chip-btn:hover { transform: translateY(-1px); }
 .chip-btn.active-chip { color: white; }
 
 .xp-stepper { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.xp-stepper button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(35,49,64,0.15); background: white; font-size: 15px; font-weight: 700; color: #233140; }
+.xp-stepper button { width: 32px; height: 32px; border-radius: 12px; border: 1px solid rgba(35,49,64,0.15); background: white; font-size: 15px; font-weight: 800; color: #233140; box-shadow: var(--soft-shadow); }
 .xp-stepper-value { font-family: var(--font-display); font-size: 16px; color: #233140; min-width: 50px; text-align: center; }
 .xp-stepper.compact { gap: 7px; margin-bottom: 0; }
 .xp-stepper.compact button { width: 26px; height: 26px; }
 .xp-stepper.compact .xp-stepper-value { min-width: 34px; font-size: 13px; }
 
-.preview-box { background: var(--moss-light); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.preview-box { background: var(--moss-light); border-radius: 18px; padding: 13px 15px; margin-bottom: 12px; }
 .preview-label { font-size: 10.5px; font-weight: 800; color: var(--moss-dark); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
 .preview-title { font-family: var(--font-display); font-size: 13.5px; color: var(--ink); margin-bottom: 2px; }
 .preview-desc { font-size: 12px; color: var(--ink-soft); }
@@ -303,11 +366,12 @@
 }
 .quick-action-row .modal-btn { margin: 0; }
 .template-card {
-  background: #FBFAF6;
+  background: #FFFFFF;
   border: 1px solid rgba(35,49,64,0.12);
-  border-radius: 14px;
+  border-radius: 18px;
   padding: 12px;
   margin-top: 10px;
+  box-shadow: var(--soft-shadow);
 }
 .template-card.compact { padding: 11px 12px; }
 .template-card.inactive {
@@ -358,14 +422,14 @@
   border: 1px solid rgba(35,49,64,0.14);
   background: white;
   color: #233140;
-  border-radius: 10px;
-  padding: 8px 10px;
+  border-radius: 14px;
+  padding: 9px 11px;
   font-size: 12px;
   font-weight: 900;
   flex: 1;
 }
 .pbtn-text.dark {
-  background: #233140;
+  background: var(--guild-primary-deep);
   color: white;
   border-color: #233140;
 }
@@ -401,7 +465,7 @@
   gap: 3px;
   background: #F1EFE8;
   border: 1px solid rgba(35,49,64,0.10);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 11px 12px;
   margin-bottom: 12px;
   color: #233140;
@@ -421,9 +485,10 @@
   align-items: flex-start;
   gap: 10px;
   border: 1px solid rgba(35,49,64,0.12);
-  border-radius: 12px;
-  background: #FBFAF6;
+  border-radius: 18px;
+  background: #FFFFFF;
   padding: 11px 12px;
+  box-shadow: 0 3px 10px rgba(59,59,59,0.05);
 }
 .template-check-row.already-assigned {
   background: #F0EEE8;
@@ -478,7 +543,7 @@
   gap: 6px;
   border: 1px solid rgba(35,49,64,0.12);
   background: #FBFAF6;
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 8px 9px;
   font-size: 12px;
   font-weight: 800;
@@ -495,7 +560,7 @@
 
 .message-banner {
   background: var(--amber-light); border: 1.5px solid var(--amber);
-  border-radius: 14px; padding: 12px 14px; margin-bottom: 12px;
+  border-radius: 18px; padding: 12px 14px; margin-bottom: 12px;
   display: flex; gap: 10px; align-items: flex-start;
 }
 .message-banner-text { font-size: 12.5px; color: var(--amber-dark); line-height: 1.5; flex: 1; }
@@ -503,11 +568,12 @@
 
 .message-empty-card { margin-top: 8px; }
 .cheer-card {
-  background: var(--paper-light);
+  background: var(--card);
   border: 1.5px solid var(--line);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 14px 15px;
   margin-bottom: 10px;
+  box-shadow: var(--soft-shadow);
 }
 .cheer-card.unread {
   background: var(--amber-light);
@@ -522,8 +588,8 @@
 .cheer-card-icon {
   width: 36px;
   height: 36px;
-  border-radius: 12px;
-  background: var(--paper-dark);
+  border-radius: 50%;
+  background: var(--guild-primary-soft);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -552,7 +618,7 @@
 .cheer-read-btn {
   margin-top: 10px;
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--amber);
   color: white;
   font-size: 12px;
@@ -565,7 +631,7 @@
   position: absolute; bottom: calc(90px + var(--safe-bottom)); left: 50%;
   transform: translateX(-50%);
   background: #233140; color: white;
-  padding: 10px 18px; border-radius: 12px;
+  padding: 11px 18px; border-radius: 16px;
   font-size: 12.5px; font-weight: 700;
   z-index: 200; white-space: nowrap;
   animation: toastIn 0.25s ease;

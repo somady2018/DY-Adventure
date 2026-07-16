@@ -55,12 +55,51 @@ export const GUILDS = {
 
 export const GUILD_KEYS = Object.keys(GUILDS);
 
+export const GUILD_THEMES = {
+  adventurer: {
+    primary: "#5CC8A1",
+    primarySoft: "#DDF6EC",
+    primaryDeep: "#2F8E72",
+    accent: "#FFD166",
+    accentSoft: "#FFF1C8",
+    pattern: "adventurer",
+  },
+  forest: {
+    primary: "#74C365",
+    primarySoft: "#E3F7D8",
+    primaryDeep: "#438D38",
+    accent: "#B8E986",
+    accentSoft: "#F0FBDD",
+    pattern: "forest",
+  },
+  space: {
+    primary: "#7DA9FF",
+    primarySoft: "#E5EEFF",
+    primaryDeep: "#4E73D8",
+    accent: "#B8A8FF",
+    accentSoft: "#EEE9FF",
+    pattern: "space",
+  },
+  magic: {
+    primary: "#D28BFF",
+    primarySoft: "#F4E4FF",
+    primaryDeep: "#9B5DCC",
+    accent: "#FFC6EC",
+    accentSoft: "#FFE9F7",
+    pattern: "magic",
+  },
+};
+
 export function normalizeGuildKey(guild) {
   return GUILDS[guild] ? guild : "adventurer";
 }
 
 export function getGuildMeta(guild) {
   return GUILDS[normalizeGuildKey(guild)];
+}
+
+export function getGuildTheme(guild) {
+  return GUILD_THEMES[normalizeGuildKey(guild)];
 }
 
 export function levelFromXp(xp) {

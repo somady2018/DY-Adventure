@@ -28,7 +28,7 @@ export function KidCharacter({ statXp, totalXp, profile }) {
               </div>
             </div>
             <div className="char-bar-track">
-              <div className="char-bar-fill" style={{ width: `${pct}%`, background: s.color }} />
+              <div className="char-bar-fill" style={{ width: `${pct}%` }} />
             </div>
             <div className="char-bar-label">다음 레벨까지 {need - into} 포인트</div>
           </div>

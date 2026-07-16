@@ -7,11 +7,21 @@ import { Onboarding } from "./components/kid/Onboarding";
 import { ParentApp } from "./components/parent/ParentApp";
 import { PinGate } from "./components/parent/PinGate";
 import { Toast } from "./components/shared/Shared";
+import { getGuildTheme, normalizeGuildKey } from "./data/definitions";
 
 export default function App() {
   const appStateApi = useAppState();
   const { state, hasPinSet, setupPin, checkPin, ensureTemplatesAssignedForDate } = appStateApi;
   const { toast, showToast } = useToast();
+  const guildKey = normalizeGuildKey(state.profile?.guild);
+  const guildTheme = getGuildTheme(guildKey);
+  const themeStyle = {
+    "--guild-primary": guildTheme.primary,
+    "--guild-primary-soft": guildTheme.primarySoft,
+    "--guild-primary-deep": guildTheme.primaryDeep,
+    "--guild-accent": guildTheme.accent,
+    "--guild-accent-soft": guildTheme.accentSoft,
+  };
 
   // mode: "kid" | "pin" | "parent"
   // 요구사항 3: 자유로운 토글 버튼 대신, 보호자 화면 진입은 항상 PIN 게이트를 거칩니다.
@@ -52,7 +62,7 @@ export default function App() {
   }
 
   return (
-    <div className="device">
+    <div className="device" data-guild={guildKey} style={themeStyle}>
       {mode === "kid" && !state.profile?.guild && (
         <Onboarding onComplete={appStateApi.saveProfile} />
       )}

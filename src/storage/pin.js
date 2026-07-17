@@ -70,7 +70,33 @@ function getOrCreateSalt(storageKey) {
   return salt;
 }
 
-const SALT_KEY = "adventure.pinSalt.v1";
+export const SALT_KEY = "adventure.pinSalt.v1";
+
+export function getPinSalt() {
+  try {
+    return localStorage.getItem(SALT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setPinSalt(salt) {
+  if (!salt || typeof salt !== "string") return false;
+  try {
+    localStorage.setItem(SALT_KEY, salt);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearPinSalt() {
+  try {
+    localStorage.removeItem(SALT_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 export async function hashPin(pin) {
   const salt = getOrCreateSalt(SALT_KEY);

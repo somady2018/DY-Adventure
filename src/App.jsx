@@ -11,7 +11,7 @@ import { getGuildTheme, normalizeGuildKey } from "./data/definitions";
 
 export default function App() {
   const appStateApi = useAppState();
-  const { state, hasPinSet, setupPin, checkPin, ensureTemplatesAssignedForDate } = appStateApi;
+  const { state, hasPinSet, setupPin, checkPin, resetParentPin, ensureTemplatesAssignedForDate } = appStateApi;
   const { toast, showToast } = useToast();
   const guildKey = normalizeGuildKey(state.profile?.guild);
   const guildTheme = getGuildTheme(guildKey);
@@ -79,6 +79,7 @@ export default function App() {
           hasPinSet={hasPinSet}
           setupPin={setupPin}
           checkPin={checkPin}
+          resetPin={resetParentPin}
           onSuccess={handlePinSuccess}
           onBack={backToKid}
         />

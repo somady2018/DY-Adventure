@@ -266,15 +266,18 @@ DY-Adventure/
 
 배포 주소:
 
-https://somady2018.github.io/DY-Adventure/
+- https://lumloom.github.io/adventure/ (운영, `lumloom/adventure` 저장소)
+- https://somady2018.github.io/DY-Adventure/ (`somady2018/DY-Adventure` 저장소)
 
 일반 절차:
 
 ```bash
 npm run build
+# 빌드 결과를 docs/ 와 dist-tablet/ 에 복사한 뒤
 git add src docs dist-tablet dist-tablet.zip
 git commit -m "Update app"
-git push origin main
+git push origin main      # somady2018/DY-Adventure
+git push lumloom main     # lumloom/adventure (GitHub Pages 운영 배포)
 ```
 
 푸시 후 보통 1~2분 안에 GitHub Pages에 반영됩니다.

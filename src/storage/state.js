@@ -211,7 +211,12 @@ export function parseStateJson(raw) {
 }
 
 export function parseImportedStateJson(raw) {
-  const parsed = JSON.parse(raw);
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("올바른 데이터 파일이 아니에요.");
+  }
   if (!parsed || typeof parsed !== "object") {
     throw new Error("올바른 데이터 파일이 아니에요.");
   }
@@ -234,21 +239,24 @@ export function saveState(state) {
 function migrateIfNeeded(parsed) {
   const initial = createInitialState();
   if (!parsed || typeof parsed !== "object") return initial;
+  const stateFields = { ...parsed };
+  delete stateFields.pinSalt;
+  delete stateFields.backupVersion;
   const timestamp = nowIso();
   const next = {
     ...initial,
-    ...parsed,
+    ...stateFields,
     schemaVersion: SCHEMA_VERSION,
-    statXp: { ...initial.statXp, ...(parsed.statXp || {}) },
-    dailyLetter: { ...initial.dailyLetter, ...(parsed.dailyLetter || {}) },
+    statXp: { ...initial.statXp, ...(stateFields.statXp || {}) },
+    dailyLetter: { ...initial.dailyLetter, ...(stateFields.dailyLetter || {}) },
   };
 
-  const isLegacyState = !parsed.schemaVersion || parsed.schemaVersion < 2;
+  const isLegacyState = !stateFields.schemaVersion || stateFields.schemaVersion < 2;
   if (!next.profile && isLegacyState) {
     next.profile = {
       childName: "도영",
       guild: "adventurer",
-      createdAt: parsed.createdAt || nowIso(),
+      createdAt: stateFields.createdAt || nowIso(),
       updatedAt: nowIso(),
     };
   }
@@ -257,7 +265,7 @@ function migrateIfNeeded(parsed) {
     next.profile = {
       childName: next.profile.childName || "도영",
       guild: normalizeGuildKey(next.profile.guild),
-      createdAt: next.profile.createdAt || parsed.createdAt || nowIso(),
+      createdAt: next.profile.createdAt || stateFields.createdAt || nowIso(),
       updatedAt: next.profile.updatedAt || nowIso(),
     };
   }
@@ -266,13 +274,13 @@ function migrateIfNeeded(parsed) {
     next.pendingLevelUps = [];
   }
 
-  const legacyTemplates = parsed.questTemplates
-    ? parsed.questTemplates
+  const legacyTemplates = stateFields.questTemplates
+    ? stateFields.questTemplates
     : [...createSystemQuestTemplates(timestamp), ...legacyTemplatesFromCode(timestamp)];
   next.questTemplates = mergeSystemTemplates(legacyTemplates, timestamp);
-  next.questSets = parsed.questSets
-    ? normalizeQuestSets(parsed.questSets, next.questTemplates)
-    : normalizeQuestSets(questSetsFromActiveTemplateIds(parsed.activeTemplateIds, next.questTemplates), next.questTemplates);
+  next.questSets = stateFields.questSets
+    ? normalizeQuestSets(stateFields.questSets, next.questTemplates)
+    : normalizeQuestSets(questSetsFromActiveTemplateIds(stateFields.activeTemplateIds, next.questTemplates), next.questTemplates);
   next.assignedQuests = syncSystemQuestNames(next.assignedQuests);
 
   return next;

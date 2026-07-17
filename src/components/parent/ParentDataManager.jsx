@@ -1,10 +1,18 @@
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../shared/Shared";
+import { isValidPinFormat } from "../../storage/pin";
 
-export function ParentDataManager({ exportJson, importState, resetAllData, showToast }) {
+export function ParentDataManager({ exportJson, importState, changePin, resetAllData, showToast }) {
   const [confirmStep, setConfirmStep] = useState(0);
   const [pendingImportText, setPendingImportText] = useState(null);
+  const [currentPin, setCurrentPin] = useState("");
+  const [nextPin, setNextPin] = useState("");
+  const [nextPinConfirm, setNextPinConfirm] = useState("");
   const fileInputRef = useRef(null);
+
+  function cleanPin(value) {
+    return value.replace(/\D/g, "").slice(0, 4);
+  }
 
   function handleExport() {
     const json = exportJson();
@@ -12,12 +20,12 @@ export function ParentDataManager({ exportJson, importState, resetAllData, showT
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `오늘의모험_데이터_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `오늘의모험-데이터-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast("데이터를 내보냈어요", "success");
+    showToast("데이터를 내보냈어요.", "success");
   }
 
   function handleImportButtonClick() {
@@ -30,16 +38,16 @@ export function ParentDataManager({ exportJson, importState, resetAllData, showT
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => setPendingImportText(String(reader.result || ""));
-    reader.onerror = () => showToast("파일을 읽지 못했어요", "error");
+    reader.onerror = () => showToast("파일을 읽지 못했어요.", "error");
     reader.readAsText(file);
   }
 
   function handleImportConfirmed() {
     try {
       importState(pendingImportText);
-      showToast("데이터를 복원했어요", "success");
+      showToast("데이터를 복원했어요.", "success");
     } catch (err) {
-      showToast(err?.message || "복원에 실패했어요. 올바른 파일인지 확인해주세요.", "error");
+      showToast(err?.message || "복원에 실패했어요. 올바른 파일인지 확인해 주세요.", "error");
     } finally {
       setPendingImportText(null);
     }
@@ -49,21 +57,48 @@ export function ParentDataManager({ exportJson, importState, resetAllData, showT
     setPendingImportText(null);
   }
 
+  async function handleChangePin() {
+    if (![currentPin, nextPin, nextPinConfirm].every(isValidPinFormat)) {
+      showToast("PIN은 4자리 숫자로 입력해 주세요.", "error");
+      return;
+    }
+    if (nextPin !== nextPinConfirm) {
+      showToast("새 PIN이 서로 달라요.", "error");
+      return;
+    }
+    try {
+      const ok = await changePin(currentPin, nextPin);
+      if (!ok) {
+        showToast("현재 PIN이 맞지 않아요.", "error");
+        return;
+      }
+      setCurrentPin("");
+      setNextPin("");
+      setNextPinConfirm("");
+      showToast("보호자 PIN을 바꿨어요.", "success");
+    } catch (err) {
+      console.error("PIN change failed", err);
+      showToast("PIN 변경에 실패했어요. 다시 시도해 주세요.", "error");
+    }
+  }
+
   function handleResetConfirmed() {
     resetAllData();
     setConfirmStep(0);
-    showToast("모든 데이터를 초기화했어요", "success");
+    showToast("모든 데이터를 초기화했어요.", "success");
   }
 
   return (
     <div className="fade-slide">
       <div className="parent-card">
-        <div className="parent-card-title">📦 데이터 내보내기 / 가져오기</div>
+        <div className="parent-card-title">데이터 내보내기 / 가져오기</div>
         <div className="parent-card-sub" style={{ marginBottom: 10 }}>
-          지금까지의 퀘스트, 경험치, 승인 기록, 메시지를 JSON 파일로 저장하거나, 이전에
-          내보내둔 파일을 다시 불러와 복원할 수 있어요.
+          퀘스트, 경험치, 메시지 기록을 JSON 파일로 저장하거나 이전 백업 파일에서 복원할 수 있어요.
+          새 백업에는 보호자 PIN 복원에 필요한 정보도 함께 포함돼요.
         </div>
-        <button type="button" className="modal-btn dark" onClick={handleExport}>JSON 파일로 내보내기</button>
+        <button type="button" className="modal-btn dark" onClick={handleExport}>
+          JSON 파일로 내보내기
+        </button>
         <input
           ref={fileInputRef}
           type="file"
@@ -79,22 +114,64 @@ export function ParentDataManager({ exportJson, importState, resetAllData, showT
           style={{ marginTop: 8 }}
           onClick={handleImportButtonClick}
         >
-          내보낸 파일로 복원하기
+          백업 파일로 복원하기
+        </button>
+      </div>
+
+      <div className="parent-card">
+        <div className="parent-card-title">보호자 PIN 변경</div>
+        <div className="parent-card-sub" style={{ marginBottom: 10 }}>
+          현재 PIN을 확인한 뒤 새 4자리 번호로 바꿀 수 있어요.
+        </div>
+        <input
+          className="text-input"
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={4}
+          placeholder="현재 PIN"
+          value={currentPin}
+          onChange={(e) => setCurrentPin(cleanPin(e.target.value))}
+        />
+        <input
+          className="text-input"
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={4}
+          placeholder="새 PIN"
+          value={nextPin}
+          onChange={(e) => setNextPin(cleanPin(e.target.value))}
+        />
+        <input
+          className="text-input"
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={4}
+          placeholder="새 PIN 다시 입력"
+          value={nextPinConfirm}
+          onChange={(e) => setNextPinConfirm(cleanPin(e.target.value))}
+        />
+        <button type="button" className="modal-btn dark" onClick={handleChangePin}>
+          PIN 변경하기
         </button>
       </div>
 
       <div className="danger-zone">
-        <div className="parent-card-title">⚠️ 전체 데이터 초기화</div>
+        <div className="parent-card-title">전체 데이터 초기화</div>
         <div className="parent-card-sub" style={{ marginBottom: 10, color: "var(--coral-dark)" }}>
-          모든 퀘스트 기록, 경험치, 메시지가 영구히 삭제돼요. 되돌릴 수 없으니 내보내기를 먼저 해두는 걸 권장해요.
+          모든 퀘스트 기록, 경험치, 메시지, 보호자 PIN이 삭제돼요. 되돌릴 수 없으니 먼저 내보내기를 권장해요.
         </div>
-        <button type="button" className="modal-btn danger" onClick={() => setConfirmStep(1)}>모든 데이터 초기화하기</button>
+        <button type="button" className="modal-btn danger" onClick={() => setConfirmStep(1)}>
+          모든 데이터 초기화하기
+        </button>
       </div>
 
       {pendingImportText !== null && (
         <ConfirmDialog
           title="파일로 복원할까요?"
-          message="선택한 파일 내용으로 현재 저장된 퀘스트·경험치·메시지를 덮어써요. 파일에 없는 최근 기록은 사라질 수 있으니, 최신 상태를 먼저 내보내기 해뒀는지 확인해주세요."
+          message="선택한 파일 내용으로 현재 저장된 퀘스트, 경험치, 메시지를 덮어써요. 파일에 PIN 복원 정보가 있으면 보호자 PIN도 함께 복원돼요."
           confirmLabel="복원하기"
           danger
           onConfirm={handleImportConfirmed}
@@ -115,7 +192,7 @@ export function ParentDataManager({ exportJson, importState, resetAllData, showT
       {confirmStep === 2 && (
         <ConfirmDialog
           title="마지막 확인이에요"
-          message="이 작업은 되돌릴 수 없어요. 정말로 모든 데이터를 초기화하시겠어요?"
+          message="이 작업은 되돌릴 수 없어요. 정말로 모든 데이터를 초기화할까요?"
           confirmLabel="네, 초기화합니다"
           danger
           onConfirm={handleResetConfirmed}

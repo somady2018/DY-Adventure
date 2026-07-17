@@ -14,7 +14,7 @@ import {
   STORAGE_KEY,
 } from "../storage/state";
 import { nowIso, weekdayCodeForDateString } from "../storage/dateUtils";
-import { hashPin, verifyPin } from "../storage/pin";
+import { clearPinSalt, getPinSalt, hashPin, setPinSalt, verifyPin } from "../storage/pin";
 import { characterLevelFromTotalXp, getQuestRewards, normalizeGuildKey } from "../data/definitions";
 
 function repeatDays(template) {
@@ -82,6 +82,21 @@ export function useAppState() {
     if (!state.parentPinHash) return false;
     return verifyPin(pin, state.parentPinHash);
   }, [state.parentPinHash]);
+
+  const changePin = useCallback(async (currentPin, nextPin) => {
+    if (state.parentPinHash) {
+      const ok = await verifyPin(currentPin, state.parentPinHash);
+      if (!ok) return false;
+    }
+    const hash = await hashPin(nextPin);
+    setState((prev) => ({ ...prev, parentPinHash: hash }));
+    return true;
+  }, [state.parentPinHash]);
+
+  const resetParentPin = useCallback(() => {
+    clearPinSalt();
+    setState((prev) => ({ ...prev, parentPinHash: null }));
+  }, []);
 
   const saveProfile = useCallback(({ childName, guild }) => {
     const trimmedName = (childName || "").trim() || "도영";
@@ -426,15 +441,28 @@ export function useAppState() {
     }));
   }, []);
 
-  const exportJson = useCallback(() => exportStateAsJson(state), [state]);
+  const exportJson = useCallback(() => {
+    const backup = JSON.parse(exportStateAsJson(state));
+    const pinSalt = getPinSalt();
+    backup.backupVersion = 2;
+    if (pinSalt) backup.pinSalt = pinSalt;
+    return JSON.stringify(backup, null, 2);
+  }, [state]);
 
   const resetAllData = useCallback(() => {
     clearAllData();
+    clearPinSalt();
     setState(createInitialState());
   }, []);
 
   const importState = useCallback((jsonText) => {
     const next = parseImportedStateJson(jsonText);
+    const parsed = JSON.parse(jsonText);
+    if (next.parentPinHash && typeof parsed.pinSalt === "string" && parsed.pinSalt) {
+      setPinSalt(parsed.pinSalt);
+    } else if (!next.parentPinHash) {
+      clearPinSalt();
+    }
     setState(next);
     return next;
   }, []);
@@ -445,6 +473,8 @@ export function useAppState() {
     hasPinSet,
     setupPin,
     checkPin,
+    changePin,
+    resetParentPin,
     saveProfile,
     markDailyLetterShown,
     saveQuestTemplate,

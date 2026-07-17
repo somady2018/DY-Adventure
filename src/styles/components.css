@@ -90,6 +90,32 @@
 .pin-key:active { background: var(--paper-dark); transform: scale(0.97); }
 .pin-key.empty { visibility: hidden; }
 .pin-error-text { color: var(--coral-dark); font-size: 12px; font-weight: 700; margin-top: 14px; min-height: 16px; }
+.pin-recovery-card {
+  margin: 14px auto 0;
+  max-width: 280px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: var(--soft-shadow);
+}
+.pin-recovery-title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+.pin-recovery-text {
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.pin-screen .text-link-btn {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
 
 /* ---------- Onboarding / Guild ---------- */
 .onboarding-screen {

@@ -90,6 +90,7 @@ export function ParentApp({ appState, actions, todayDate, onBackToKid, showToast
           <ParentDataManager
             exportJson={actions.exportJson}
             importState={actions.importState}
+            changePin={actions.changePin}
             resetAllData={actions.resetAllData}
             showToast={showToast}
           />

@@ -7,6 +7,7 @@ import {
   normalizeGuildKey,
 } from "../data/definitions";
 import { nowIso } from "./dateUtils";
+import { mirrorRemove, mirrorSet } from "./nativeMirror";
 
 export const SCHEMA_VERSION = 7;
 export const STORAGE_KEY = "adventure.appState.v1";
@@ -228,7 +229,9 @@ export function parseImportedStateJson(raw) {
 
 export function saveState(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const json = JSON.stringify(state);
+    localStorage.setItem(STORAGE_KEY, json);
+    mirrorSet(STORAGE_KEY, json);
     return true;
   } catch (err) {
     console.error("저장 실패", err);
@@ -292,6 +295,7 @@ export function exportStateAsJson(state) {
 
 export function clearAllData() {
   localStorage.removeItem(STORAGE_KEY);
+  mirrorRemove(STORAGE_KEY);
 }
 
 let idCounter = 0;

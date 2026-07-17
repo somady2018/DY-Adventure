@@ -5,6 +5,8 @@
 // (주의: 이 방식은 같은 브라우저 안에서 평문 노출을 막는 수준의 보호이며,
 //  실제 서비스로 확장할 때는 서버 측 인증으로 교체해야 합니다.)
 
+import { mirrorRemove, mirrorSet } from "./nativeMirror";
+
 function bytesToHex(bytes) {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -63,6 +65,7 @@ function getOrCreateSalt(storageKey) {
     salt = createSalt();
     try {
       localStorage.setItem(storageKey, salt);
+      mirrorSet(storageKey, salt);
     } catch {
       // A storage failure will be handled when the app state is saved.
     }
@@ -84,6 +87,7 @@ export function setPinSalt(salt) {
   if (!salt || typeof salt !== "string") return false;
   try {
     localStorage.setItem(SALT_KEY, salt);
+    mirrorSet(SALT_KEY, salt);
     return true;
   } catch {
     return false;
@@ -93,6 +97,7 @@ export function setPinSalt(salt) {
 export function clearPinSalt() {
   try {
     localStorage.removeItem(SALT_KEY);
+    mirrorRemove(SALT_KEY);
   } catch {
     // ignore
   }

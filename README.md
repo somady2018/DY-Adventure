@@ -281,3 +281,33 @@ git push lumloom main     # lumloom/adventure (GitHub Pages 운영 배포)
 ```
 
 푸시 후 보통 1~2분 안에 GitHub Pages에 반영됩니다.
+
+---
+
+## 안드로이드 앱 (Capacitor)
+
+구글 플레이 출시를 위해 Capacitor로 안드로이드 앱을 빌드합니다.
+
+- 앱 ID: `io.github.lumloom.adventure` (플레이 스토어 등록 후 변경 불가)
+- 앱 이름: 오늘의모험
+- `android/` 폴더가 안드로이드 네이티브 프로젝트입니다.
+
+### 데이터 저장 구조
+
+네이티브 앱에서는 WebView localStorage가 OS에 의해 삭제될 수 있으므로,
+`src/storage/nativeMirror.js`가 모든 저장을 Capacitor Preferences
+(안드로이드 SharedPreferences)에 미러링합니다. 앱 시작 시 localStorage가
+비어 있으면 네이티브 저장소에서 복원합니다. 웹에서는 전부 no-op입니다.
+
+### 빌드 절차
+
+사전 준비: [Android Studio](https://developer.android.com/studio) 설치 (JDK 포함).
+
+```bash
+npm run build          # 웹 빌드
+npx cap sync android   # dist/ 를 안드로이드 프로젝트에 복사
+npx cap open android   # Android Studio로 열기
+```
+
+Android Studio에서 실행(에뮬레이터/실기기 테스트)하거나,
+Build > Generate Signed App Bundle 로 플레이 스토어용 .aab를 생성합니다.

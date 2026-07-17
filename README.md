@@ -1,24 +1,38 @@
-# 오늘의 모험 (v0.7)
+# 오늘의 모험 (v0.8)
 
 도영이가 보호자와 함께 한 기기에서 쓰는 로컬 우선 퀘스트 앱입니다.
-React/Vite로 만든 정적 웹앱이며, 서버나 데이터베이스 없이 브라우저
-`localStorage`에 데이터를 저장합니다.
+React/Vite로 만든 정적 웹앱이며, 서버나 데이터베이스 없이 기기 안에만
+데이터를 저장합니다. Capacitor로 감싼 안드로이드 앱 버전도 함께 빌드하며,
+구글 플레이 정식 출시를 준비 중입니다.
 
-현재 문서 기준은 **v0.7**입니다. 코드의 저장 데이터 스키마는
-`schemaVersion: 7`이고, npm 패키지 버전은 아직 `1.0.0`으로 남아 있습니다.
+현재 문서 기준은 **v0.8**입니다. 코드의 저장 데이터 스키마는
+`schemaVersion: 7`(v0.7과 동일·호환)이고, npm 패키지 버전은 아직
+`1.0.0`으로 남아 있습니다.
 
-서비스 주소: https://somady2018.github.io/DY-Adventure/
+서비스 주소: https://lumloom.github.io/adventure/
+
+개인정보처리방침: https://lumloom.github.io/adventure/privacy.html
 
 ---
 
 ## 현재 버전 요약
 
-- 제품 문서 기준: `v0.7`
+- 제품 문서 기준: `v0.8`
 - 저장 키: `adventure.appState.v1`
 - 저장 스키마: `SCHEMA_VERSION = 7`
-- 배포 방식: GitHub Pages, `main` 브랜치의 `/docs` 폴더
-- 기본 저장 위치: 같은 브라우저의 `localStorage`
+- 배포 방식: GitHub Pages, `main` 브랜치의 `/docs` 폴더 (웹) + Capacitor 안드로이드 앱
+- 기본 저장 위치: 같은 브라우저의 `localStorage` (안드로이드 앱은 네이티브 저장소에 이중 기록)
 - 대상 사용 흐름: 아이 화면과 보호자 화면을 한 기기에서 전환해 사용
+
+### v0.8에서 중요한 변경
+
+- 백업 파일(v2)에 PIN salt를 포함해, 백업 복원 후에도 보호자 PIN이 그대로 동작합니다.
+- 잠금 화면에서 PIN을 10번 틀리면 "PIN을 잊으셨나요?" 복구 버튼이 나타나
+  기록은 유지한 채 PIN만 재설정할 수 있습니다. (평소에는 숨겨져 있음)
+- 보호자 화면(기록 백업 탭)에서 현재 PIN 확인 후 새 PIN으로 변경할 수 있습니다.
+- Capacitor 안드로이드 앱 패키징을 추가했습니다. 앱에서는 데이터가 네이티브
+  저장소에 미러링되고, 백업 내보내기는 안드로이드 공유 시트로 동작합니다.
+- 개인정보처리방침 페이지(`docs/privacy.html`)를 추가했습니다.
 
 ### v0.7에서 중요한 변경
 
@@ -75,6 +89,10 @@ Compress-Archive -Path .\dist-tablet\* -DestinationPath .\dist-tablet.zip -Force
 
 PIN salt는 별도 키 `adventure.pinSalt.v1`에 저장됩니다.
 
+백업 파일(JSON 내보내기)에는 앱 상태에 더해 `backupVersion: 2`와
+`pinSalt`가 추가되어, 복원 시 보호자 PIN까지 함께 복구됩니다.
+(이 두 필드는 앱 상태 저장소에는 기록되지 않고 백업 파일에만 존재합니다.)
+
 ```jsonc
 {
   "schemaVersion": 7,
@@ -89,7 +107,7 @@ PIN salt는 별도 키 `adventure.pinSalt.v1`에 저장됩니다.
     "lastShownDate": null,
     "lastMessageId": null
   },
-  "parentPinHash": "SHA-256 해시 문자열",
+  "parentPinHash": "sha256:... 형식의 해시 문자열",
   "questTemplates": [],
   "questSets": {
     "dailyRequiredTemplateIds": ["base_wash", "base_school_bag"],
@@ -159,6 +177,7 @@ PIN salt는 별도 키 `adventure.pinSalt.v1`에 저장됩니다.
 - 아이 온보딩: 이름과 길드 선택
 - 아이 화면: 오늘 퀘스트, 캐릭터, 스킬, 부모 메시지 확인
 - 보호자 화면: PIN 입력 후 진입
+- PIN 관리: 보호자 화면에서 PIN 변경, 잠금 화면에서 10회 실패 시 복구(재설정) 흐름
 - 퀘스트 완료 요청: `open` -> `pending`
 - 보호자 승인: XP 지급, 보상 연출, 레벨업 큐 등록
 - 재도전 요청: 보호자 사유 표시 후 아이가 다시 시작 가능
@@ -166,7 +185,7 @@ PIN salt는 별도 키 `adventure.pinSalt.v1`에 저장됩니다.
 - 날짜별 퀘스트 등록과 제외
 - 주간 리포트
 - 응원 메시지 보내기
-- JSON 내보내기/가져오기
+- JSON 내보내기/가져오기 (웹: 파일 다운로드, 안드로이드 앱: 공유 시트로 저장)
 - 전체 초기화
 - 다른 탭에서 같은 저장 키가 바뀌면 마이그레이션을 거쳐 동기화
 
@@ -205,8 +224,11 @@ PIN salt는 별도 키 `adventure.pinSalt.v1`에 저장됩니다.
 
 - PIN은 평문으로 저장하지 않고 `SHA-256(salt + PIN)` 해시로 저장합니다.
 - 이 PIN은 가족용 가벼운 잠금 장치입니다. 서버 인증 수준의 보안은 아닙니다.
-- 이 앱은 한 기기, 한 브라우저 사용을 전제로 합니다.
-- 부모 폰과 아이 폰 사이의 실시간 동기화는 없습니다.
+- 잠금 화면에서 10회 실패 시 나타나는 복구 흐름으로 PIN을 재설정할 수 있습니다.
+  (기기 자체에 접근 가능한 사람을 막는 수준의 보안이 아니라는 전제입니다.)
+- 백업 파일에는 PIN 해시와 salt가 포함되므로, 백업 파일 자체를 안전한 곳에 보관해야 합니다.
+- 이 앱은 한 기기, 한 브라우저(또는 한 대의 안드로이드 기기) 사용을 전제로 합니다.
+- 부모 폰과 아이 폰 사이의 실시간 동기화는 없습니다. (서버 없음 — 계정/동기화는 추후 검토)
 - PWA manifest와 홈 화면 추가는 지원하지만, 서비스워커 기반 완전 오프라인 첫 로딩은 없습니다.
 - 날짜 계산은 `Asia/Seoul` 기준입니다.
 
@@ -232,6 +254,10 @@ DY-Adventure/
 ├─ index.html
 ├─ package.json
 ├─ vite.config.js
+├─ capacitor.config.json      # Capacitor 앱 설정 (appId, 앱 이름)
+├─ assets/
+│  └─ logo.png                # 앱 아이콘 원본 (1024px)
+├─ android/                   # Capacitor 안드로이드 네이티브 프로젝트
 ├─ public/
 │  ├─ icons/
 │  └─ manifest.webmanifest
@@ -244,7 +270,9 @@ DY-Adventure/
 │  ├─ storage/
 │  │  ├─ state.js
 │  │  ├─ dateUtils.js
-│  │  └─ pin.js
+│  │  ├─ pin.js
+│  │  ├─ nativeMirror.js      # 앱: 네이티브 저장소 미러링
+│  │  └─ nativeShare.js       # 앱: 백업 공유 시트
 │  ├─ hooks/
 │  │  ├─ useAppState.js
 │  │  └─ useToast.js
@@ -253,7 +281,7 @@ DY-Adventure/
 │  │  ├─ parent/
 │  │  └─ shared/
 │  └─ styles/
-├─ docs/
+├─ docs/                      # GitHub Pages 배포 (privacy.html 포함)
 ├─ dist-tablet/
 └─ dist-tablet.zip
 ```
@@ -264,10 +292,11 @@ DY-Adventure/
 
 현재 저장소는 `main` 브랜치의 `/docs` 폴더를 GitHub Pages 소스로 사용합니다.
 
-배포 주소:
+배포 주소: https://lumloom.github.io/adventure/ (`lumloom/adventure` 저장소)
 
-- https://lumloom.github.io/adventure/ (운영, `lumloom/adventure` 저장소)
-- https://somady2018.github.io/DY-Adventure/ (`somady2018/DY-Adventure` 저장소)
+저장소는 원래 `somady2018/DY-Adventure`였다가 `lumloom/adventure`로
+이전되었습니다. 옛 주소로의 push/fetch는 GitHub이 새 저장소로 리다이렉트하므로,
+로컬 remote가 `origin`(옛 주소)이든 `lumloom`(새 주소)이든 같은 곳에 반영됩니다.
 
 일반 절차:
 
@@ -276,8 +305,7 @@ npm run build
 # 빌드 결과를 docs/ 와 dist-tablet/ 에 복사한 뒤
 git add src docs dist-tablet dist-tablet.zip
 git commit -m "Update app"
-git push origin main      # somady2018/DY-Adventure
-git push lumloom main     # lumloom/adventure (GitHub Pages 운영 배포)
+git push lumloom main
 ```
 
 푸시 후 보통 1~2분 안에 GitHub Pages에 반영됩니다.
@@ -299,15 +327,38 @@ git push lumloom main     # lumloom/adventure (GitHub Pages 운영 배포)
 (안드로이드 SharedPreferences)에 미러링합니다. 앱 시작 시 localStorage가
 비어 있으면 네이티브 저장소에서 복원합니다. 웹에서는 전부 no-op입니다.
 
+### 백업 내보내기 (앱)
+
+앱의 WebView는 `<a download>`를 지원하지 않으므로, 앱에서는
+`src/storage/nativeShare.js`가 백업 JSON을 캐시 폴더에 쓴 뒤 안드로이드
+공유 시트를 띄웁니다. 구글 드라이브, 카카오톡 등으로 바로 보낼 수 있습니다.
+
 ### 빌드 절차
 
 사전 준비: [Android Studio](https://developer.android.com/studio) 설치 (JDK 포함).
+`android/local.properties`에 SDK 경로가 있어야 합니다 (Android Studio가 자동 생성).
 
 ```bash
 npm run build          # 웹 빌드
 npx cap sync android   # dist/ 를 안드로이드 프로젝트에 복사
-npx cap open android   # Android Studio로 열기
+
+# 테스트용 APK를 명령줄로 빌드하는 경우 (JAVA_HOME은 Android Studio 내장 JDK):
+cd android
+JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+# 결과: android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Android Studio에서 실행(에뮬레이터/실기기 테스트)하거나,
+또는 `npx cap open android`로 Android Studio에서 열어 실행(에뮬레이터/실기기)하거나,
 Build > Generate Signed App Bundle 로 플레이 스토어용 .aab를 생성합니다.
+
+### 앱 아이콘/스플래시 재생성
+
+원본은 `assets/logo.png`(1024px, `public/icons/icon.svg`에서 렌더링)입니다.
+로고를 바꾸면 아래 명령으로 안드로이드 리소스를 다시 생성합니다.
+
+```bash
+npx capacitor-assets generate --android \
+  --iconBackgroundColor "#FFFDF7" --iconBackgroundColorDark "#FFFDF7" \
+  --splashBackgroundColor "#FFFDF7" --splashBackgroundColorDark "#F5EEDB" \
+  --logoSplashScale 0.4
+```

@@ -322,7 +322,6 @@ export function useAppState() {
       if (input.saveAsTemplate) {
         savedTemplate = createQuestTemplate({
           title: input.title,
-          storyTitle: input.storyTitle,
           description: input.description || input.desc,
           ability: input.ability || input.statKey,
           defaultXp: input.xp,

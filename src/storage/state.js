@@ -17,7 +17,7 @@ const VALID_REPEAT_DAYS = new Set(REPEAT_DAY_OPTIONS.map((option) => option.key)
 const SYSTEM_TEMPLATE_NAMES = new Map(
   SYSTEM_QUEST_TEMPLATES.map((template) => [
     template.id,
-    { title: template.title, storyTitle: template.storyTitle },
+    { title: template.title },
   ])
 );
 
@@ -96,7 +96,6 @@ function normalizeQuestTemplate(template, fallbackId, timestamp = nowIso()) {
     id,
     source: template.source === "system" ? "system" : "custom",
     title: template.title || "새 퀘스트",
-    storyTitle: template.storyTitle || template.title || "새로운 임무",
     description: template.description || template.desc || "",
     ability,
     defaultXp,
@@ -116,7 +115,6 @@ function legacyTemplatesFromCode(timestamp = nowIso()) {
     ...template,
     id: template.templateId,
     source: "custom",
-    storyTitle: template.title,
     description: template.desc,
     ability: template.statKey,
     defaultXp: template.xp,
@@ -339,7 +337,6 @@ function syncSystemTemplateContentV9(next, timestamp) {
     return {
       ...template,
       title: code.title,
-      storyTitle: code.storyTitle,
       description: code.description,
       emoji: code.emoji,
       ability: rewards ? rewards[0].statKey : code.ability,
@@ -359,7 +356,6 @@ function syncSystemTemplateContentV9(next, timestamp) {
     return {
       ...quest,
       title: code.title,
-      storyTitle: code.storyTitle,
       desc: code.description,
       description: code.description,
       emoji: code.emoji,
@@ -442,7 +438,6 @@ export function buildQuestFromTemplate(template, date, overrides = {}) {
     type,
     emoji: template.emoji || STAT_LIST.find((s) => s.key === ability)?.emoji || "✨",
     title: template.title,
-    storyTitle: template.storyTitle || template.title,
     desc: description,
     description,
     statKey: ability,
@@ -458,7 +453,7 @@ export function buildQuestFromTemplate(template, date, overrides = {}) {
   };
 }
 
-export function buildCustomQuest({ emoji, title, storyTitle, desc, description, statKey, ability, xp, type, date, templateId = null }) {
+export function buildCustomQuest({ emoji, title, desc, description, statKey, ability, xp, type, date, templateId = null }) {
   const resolvedAbility = ability || statKey || "life";
   const resolvedDescription = description || desc || "";
   return {
@@ -468,7 +463,6 @@ export function buildCustomQuest({ emoji, title, storyTitle, desc, description, 
     type,
     emoji: emoji || STAT_LIST.find((s) => s.key === resolvedAbility)?.emoji || "✏️",
     title,
-    storyTitle: storyTitle || title,
     desc: resolvedDescription,
     description: resolvedDescription,
     statKey: resolvedAbility,

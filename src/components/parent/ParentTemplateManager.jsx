@@ -12,7 +12,6 @@ import {
 const EMPTY_TEMPLATE = {
   id: null,
   title: "",
-  storyTitle: "",
   description: "",
   ability: "life",
   defaultXp: 6,
@@ -49,7 +48,7 @@ export function ParentTemplateManager({
   const isSystemEditing = isEditingExisting && questTemplates.find((template) => template.id === editing.id)?.source === "system";
   const visibleTemplates = questTemplates.filter((template) => {
     const q = query.trim().toLowerCase();
-    return !q || `${template.title} ${template.storyTitle} ${template.description}`.toLowerCase().includes(q);
+    return !q || `${template.title} ${template.description}`.toLowerCase().includes(q);
   });
 
   function resetForm() {
@@ -61,7 +60,6 @@ export function ParentTemplateManager({
     setEditing({
       id: template.id,
       title: template.title,
-      storyTitle: template.storyTitle,
       description: template.description,
       ability: rewards ? rewards[0].statKey : template.ability,
       defaultXp: rewards ? rewards[0].xp : template.defaultXp,
@@ -80,7 +78,6 @@ export function ParentTemplateManager({
     onSaveTemplate({
       ...editing,
       title: editing.title.trim(),
-      storyTitle: editing.storyTitle.trim() || editing.title.trim(),
       description: editing.description.trim(),
       defaultXp: primaryXp,
       rewards: hasSecondary
@@ -171,9 +168,6 @@ function TemplateForm({ editing, isSystemEditing, setEditing, onSave, onCancel }
       )}
       <div className="field-label">퀘스트 이름</div>
       <input className="text-input" value={editing.title} onChange={(e) => setEditing((prev) => ({ ...prev, title: e.target.value }))} placeholder="예: 영어 단어 5개 보기" aria-label="퀘스트 이름" />
-
-      <div className="field-label">모험식 이름</div>
-      <input className="text-input" value={editing.storyTitle} onChange={(e) => setEditing((prev) => ({ ...prev, storyTitle: e.target.value }))} placeholder="예: 단어 조각 모으기" aria-label="모험식 이름" />
 
       <div className="field-label">설명 / 완료 조건</div>
       <textarea className="textarea-input" value={editing.description} onChange={(e) => setEditing((prev) => ({ ...prev, description: e.target.value }))} placeholder="완료 조건을 적어주세요." aria-label="설명 또는 완료 조건" />

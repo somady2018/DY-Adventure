@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../shared/Shared";
 import { isValidPinFormat } from "../../storage/pin";
+import { isNativeApp } from "../../storage/nativeMirror";
+import { isShareCanceled, shareBackupFile } from "../../storage/nativeShare";
 
 export function ParentDataManager({ exportJson, importState, changePin, resetAllData, showToast }) {
   const [confirmStep, setConfirmStep] = useState(0);
@@ -14,13 +16,29 @@ export function ParentDataManager({ exportJson, importState, changePin, resetAll
     return value.replace(/\D/g, "").slice(0, 4);
   }
 
-  function handleExport() {
+  async function handleExport() {
     const json = exportJson();
+    const fileName = `오늘의모험-데이터-${new Date().toISOString().slice(0, 10)}.json`;
+
+    // 안드로이드 앱: WebView는 <a download>를 지원하지 않으므로 공유 시트 사용
+    if (isNativeApp()) {
+      try {
+        await shareBackupFile(fileName, json);
+        showToast("백업 파일을 저장했어요.", "success");
+      } catch (err) {
+        if (!isShareCanceled(err)) {
+          console.error("백업 공유 실패", err);
+          showToast("백업 파일 저장에 실패했어요.", "error");
+        }
+      }
+      return;
+    }
+
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `오늘의모험-데이터-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

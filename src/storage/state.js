@@ -9,7 +9,7 @@ import {
 import { nowIso } from "./dateUtils";
 import { mirrorRemove, mirrorSet } from "./nativeMirror";
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 export const STORAGE_KEY = "adventure.appState.v1";
 
 const VALID_TEMPLATE_TYPES = new Set(["required", "choice", "challenge", "bonus"]);
@@ -317,7 +317,58 @@ function migrateIfNeeded(parsed) {
   next.assignedQuests = syncSystemQuestNames(next.assignedQuests);
   repairSplitRewards(next, timestamp);
 
+  const originalSchemaVersion = Number(stateFields.schemaVersion) || 0;
+  if (originalSchemaVersion < 9) {
+    syncSystemTemplateContentV9(next, timestamp);
+  }
+
   return next;
+}
+
+// 스키마 9 마이그레이션(1회성): 기본 제공 템플릿 6종의 내용(설명, 보상 구성)을
+// 새 기준으로 재정리했으므로, 스키마 9 미만의 저장 데이터에는 코드의 최신 내용을
+// 한 번 동기화합니다. 사용자의 활성/반복/종류 설정은 유지하며, 스키마 9 이후에
+// 사용자가 시스템 템플릿을 직접 수정한 내용은 다시 덮어쓰지 않습니다.
+function syncSystemTemplateContentV9(next, timestamp) {
+  const codeById = new Map(SYSTEM_QUEST_TEMPLATES.map((template) => [template.id, template]));
+
+  next.questTemplates = next.questTemplates.map((template) => {
+    const code = codeById.get(template.id);
+    if (!code) return template;
+    const rewards = normalizeTemplateRewards(code.rewards);
+    return {
+      ...template,
+      title: code.title,
+      storyTitle: code.storyTitle,
+      description: code.description,
+      emoji: code.emoji,
+      ability: rewards ? rewards[0].statKey : code.ability,
+      defaultXp: rewards ? rewardsTotalXp(rewards) : clampTemplateXp(code.defaultXp),
+      rewards,
+      updatedAt: timestamp,
+    };
+  });
+
+  // 아직 승인 전인 시스템 템플릿 퀘스트도 새 내용으로 맞춥니다.
+  next.assignedQuests = next.assignedQuests.map((quest) => {
+    const code = codeById.get(quest.templateId);
+    if (!code || quest.xpGranted) return quest;
+    if (quest.status !== "open" && quest.status !== "pending") return quest;
+    const rewards = normalizeTemplateRewards(code.rewards);
+    const ability = rewards ? rewards[0].statKey : code.ability;
+    return {
+      ...quest,
+      title: code.title,
+      storyTitle: code.storyTitle,
+      desc: code.description,
+      description: code.description,
+      emoji: code.emoji,
+      statKey: ability,
+      ability,
+      xp: rewards ? rewardsTotalXp(rewards) : clampTemplateXp(code.defaultXp),
+      rewards,
+    };
+  });
 }
 
 // 스키마 8 마이그레이션: 코드에 분할 보상(rewards)이 정의된 레거시 템플릿

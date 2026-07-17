@@ -337,6 +337,8 @@ export function repeatDaysLabel(repeatDays = ["daily"]) {
   return labels.length ? labels.join("·") : "매일";
 }
 
+// 기본 제공 템플릿 6종. 새로 시작하는 사용자에게 샘플이 되는 세트이므로,
+// 분할 보상(rewards)이 있는 템플릿은 defaultXp를 보상 합계와 같게 유지해야 합니다.
 export const SYSTEM_QUEST_TEMPLATES = [
   {
     id: "base_wash",
@@ -346,6 +348,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     description: "세수, 양치, 샤워 등 정해진 씻기 루틴을 스스로 해요.",
     ability: "life",
     defaultXp: 5,
+    rewards: [{ statKey: "life", xp: 4 }, { statKey: "heart", xp: 1 }],
     defaultType: "required",
     repeatDays: ["daily"],
     emoji: "🧼",
@@ -359,6 +362,7 @@ export const SYSTEM_QUEST_TEMPLATES = [
     description: "좋아하는 책을 15분 동안 읽어요.",
     ability: "knowledge",
     defaultXp: 6,
+    rewards: [{ statKey: "knowledge", xp: 4 }, { statKey: "curiosity", xp: 2 }],
     defaultType: "choice",
     repeatDays: ["daily"],
     emoji: "📖",
@@ -371,7 +375,8 @@ export const SYSTEM_QUEST_TEMPLATES = [
     storyTitle: "학교 준비물 챙기기",
     description: "알림장, 숙제, 준비물을 확인하고 가방을 스스로 챙겨요.",
     ability: "life",
-    defaultXp: 5,
+    defaultXp: 6,
+    rewards: [{ statKey: "life", xp: 3 }, { statKey: "curiosity", xp: 3 }],
     defaultType: "required",
     repeatDays: ["daily"],
     emoji: "🎒",
@@ -382,9 +387,10 @@ export const SYSTEM_QUEST_TEMPLATES = [
     source: "system",
     title: "에너지 충전 작전",
     storyTitle: "주어진 밥 잘 먹기",
-    description: "정해진 식사량을 골고루 먹으려고 노력해요.",
+    description: "정해진 식사량과 다양한 반찬을 먹으려고 노력해요.",
     ability: "grit",
     defaultXp: 5,
+    rewards: [{ statKey: "grit", xp: 3 }, { statKey: "courage", xp: 2 }],
     defaultType: "required",
     repeatDays: ["daily"],
     emoji: "🥣",
@@ -408,9 +414,10 @@ export const SYSTEM_QUEST_TEMPLATES = [
     source: "system",
     title: "마음빛 발견하기",
     storyTitle: "고마운 일 하나 말하기",
-    description: "오늘 고마웠던 사람이나 일을 하나 말해요.",
+    description: "오늘 함께했던 사람과 좋았던 일을 말해봐요.",
     ability: "heart",
-    defaultXp: 5,
+    defaultXp: 8,
+    rewards: [{ statKey: "heart", xp: 5 }, { statKey: "teamwork", xp: 3 }],
     defaultType: "choice",
     repeatDays: ["daily"],
     emoji: "💛",

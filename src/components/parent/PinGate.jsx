@@ -2,6 +2,9 @@ import { useState, useRef } from "react";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"];
 
+// 잠금 화면에서 이 횟수 이상 틀리면 "PIN을 잊으셨나요?" 복구 버튼이 나타납니다.
+const RECOVERY_FAIL_THRESHOLD = 10;
+
 function PinDots({ count }) {
   return (
     <div className="pin-dots" aria-hidden="true">
@@ -17,6 +20,7 @@ export function PinGate({ hasPinSet, setupPin, checkPin, resetPin, onSuccess, on
   const [stageName, setStageName] = useState(hasPinSet ? "enter" : "create-step1");
   const [errorMsg, setErrorMsg] = useState("");
   const [showRecoveryConfirm, setShowRecoveryConfirm] = useState(false);
+  const [failCount, setFailCount] = useState(0);
 
   const stage = useRef(hasPinSet ? "enter" : "create-step1");
   const entered = useRef("");
@@ -43,6 +47,7 @@ export function PinGate({ hasPinSet, setupPin, checkPin, resetPin, onSuccess, on
     first.current = "";
     reset();
     setShowRecoveryConfirm(false);
+    setFailCount(0);
     setStage("create-step1");
   }
 
@@ -108,6 +113,7 @@ export function PinGate({ hasPinSet, setupPin, checkPin, resetPin, onSuccess, on
         busy.current = false;
         onSuccess();
       } else {
+        setFailCount((c) => c + 1);
         setErrorMsg("번호가 올바르지 않아요.");
         setTimeout(() => {
           reset();
@@ -169,14 +175,14 @@ export function PinGate({ hasPinSet, setupPin, checkPin, resetPin, onSuccess, on
 
         <div className="pin-error-text" role="alert">{errorMsg}</div>
 
-        {stageName === "enter" && !showRecoveryConfirm && (
+        {stageName === "enter" && failCount >= RECOVERY_FAIL_THRESHOLD && !showRecoveryConfirm && (
           <button
             type="button"
             className="text-link-btn"
             style={{ marginTop: 14 }}
             onClick={() => setShowRecoveryConfirm(true)}
           >
-            백업 복원 후 PIN이 안 맞나요?
+            PIN을 잊으셨나요?
           </button>
         )}
 

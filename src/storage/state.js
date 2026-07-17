@@ -9,7 +9,7 @@ import {
 import { nowIso } from "./dateUtils";
 import { mirrorRemove, mirrorSet } from "./nativeMirror";
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 export const STORAGE_KEY = "adventure.appState.v1";
 
 const VALID_TEMPLATE_TYPES = new Set(["required", "choice", "challenge", "bonus"]);
@@ -49,6 +49,30 @@ function clampTemplateXp(xp) {
   return Math.min(12, Math.max(4, Math.round(value)));
 }
 
+// 분할 보상의 개별 XP는 템플릿 기본 XP(4~12)보다 작게 나눌 수 있어야 하므로
+// 별도의 범위(1~12)를 사용합니다.
+function clampRewardXp(xp) {
+  const value = Number(xp);
+  if (!Number.isFinite(value)) return 2;
+  return Math.min(12, Math.max(1, Math.round(value)));
+}
+
+const VALID_STAT_KEYS = new Set(STAT_LIST.map((stat) => stat.key));
+
+// 보상이 2개 이상일 때만 "분할 보상"으로 인정합니다.
+// (1개짜리 rewards는 단일 statKey/xp와 같은 의미이므로 정규화 단계에서 버립니다.)
+function normalizeTemplateRewards(rewards) {
+  if (!Array.isArray(rewards)) return null;
+  const clean = rewards
+    .filter((reward) => reward && VALID_STAT_KEYS.has(reward.statKey))
+    .map((reward) => ({ statKey: reward.statKey, xp: clampRewardXp(reward.xp) }));
+  return clean.length >= 2 ? clean : null;
+}
+
+function rewardsTotalXp(rewards) {
+  return rewards.reduce((sum, reward) => sum + reward.xp, 0);
+}
+
 export function normalizeRepeatDays(days) {
   if (!Array.isArray(days) || days.length === 0) return ["daily"];
   const clean = Array.from(new Set(days.filter((day) => VALID_REPEAT_DAYS.has(day))));
@@ -58,8 +82,14 @@ export function normalizeRepeatDays(days) {
 
 function normalizeQuestTemplate(template, fallbackId, timestamp = nowIso()) {
   const id = template.id || template.templateId || fallbackId || `custom_${Date.now()}`;
-  const ability = template.ability || template.statKey || template.rewards?.[0]?.statKey || "life";
-  const defaultXp = clampTemplateXp(template.defaultXp ?? template.xp);
+  const rewards = normalizeTemplateRewards(template.rewards);
+  // 분할 보상이 있으면 대표 능력치는 첫 번째 보상, 기본 XP는 보상 합계로 통일
+  const ability = rewards
+    ? rewards[0].statKey
+    : template.ability || template.statKey || "life";
+  const defaultXp = rewards
+    ? rewardsTotalXp(rewards)
+    : clampTemplateXp(template.defaultXp ?? template.xp);
   const typeCandidate = template.defaultType || template.type;
   const defaultType = VALID_TEMPLATE_TYPES.has(typeCandidate) ? typeCandidate : "choice";
   return {
@@ -73,7 +103,7 @@ function normalizeQuestTemplate(template, fallbackId, timestamp = nowIso()) {
     defaultType,
     repeatDays: normalizeRepeatDays(template.repeatDays),
     emoji: template.emoji || STAT_LIST.find((s) => s.key === ability)?.emoji || "✨",
-    rewards: Array.isArray(template.rewards) ? template.rewards : null,
+    rewards,
     guildTone: template.guildTone || "common",
     isActive: template.isActive !== false,
     createdAt: template.createdAt || timestamp,
@@ -285,8 +315,41 @@ function migrateIfNeeded(parsed) {
     ? normalizeQuestSets(stateFields.questSets, next.questTemplates)
     : normalizeQuestSets(questSetsFromActiveTemplateIds(stateFields.activeTemplateIds, next.questTemplates), next.questTemplates);
   next.assignedQuests = syncSystemQuestNames(next.assignedQuests);
+  repairSplitRewards(next, timestamp);
 
   return next;
+}
+
+// 스키마 8 마이그레이션: 코드에 분할 보상(rewards)이 정의된 레거시 템플릿
+// (t11 "영어가 술술", t12 "수학천재가 될테다")이 예전 저장 데이터에는 rewards 없이
+// 남아 있어, 실제로는 단일 보상만 지급되던 문제를 복구합니다.
+// 사용자가 능력치를 직접 바꾼 템플릿은 의도를 존중해 건드리지 않습니다.
+function repairSplitRewards(next, timestamp) {
+  const codeSplitTemplates = new Map(
+    QUEST_TEMPLATES
+      .filter((template) => Array.isArray(template.rewards) && template.rewards.length >= 2)
+      .map((template) => [template.templateId, template])
+  );
+  if (codeSplitTemplates.size === 0) return;
+
+  next.questTemplates = next.questTemplates.map((template) => {
+    const code = codeSplitTemplates.get(template.id);
+    if (!code || template.rewards || template.ability !== code.statKey) return template;
+    const rewards = normalizeTemplateRewards(code.rewards);
+    if (!rewards) return template;
+    return { ...template, rewards, defaultXp: rewardsTotalXp(rewards), updatedAt: timestamp };
+  });
+
+  // 아직 승인 전인 오늘 퀘스트도 같은 기준으로 복구 (지급된 XP는 소급하지 않음)
+  next.assignedQuests = next.assignedQuests.map((quest) => {
+    const code = codeSplitTemplates.get(quest.templateId);
+    if (!code || quest.rewards || quest.xpGranted) return quest;
+    if (quest.status !== "open" && quest.status !== "pending") return quest;
+    if ((quest.statKey || quest.ability) !== code.statKey) return quest;
+    const rewards = normalizeTemplateRewards(code.rewards);
+    if (!rewards) return quest;
+    return { ...quest, rewards, xp: rewardsTotalXp(rewards) };
+  });
 }
 
 export function exportStateAsJson(state) {
@@ -305,12 +368,22 @@ export function generateQuestId() {
 }
 
 export function buildQuestFromTemplate(template, date, overrides = {}) {
-  const ability = template.ability || template.statKey || "life";
-  const xp = clampTemplateXp(overrides.xp ?? template.defaultXp ?? template.xp);
+  const templateRewards = normalizeTemplateRewards(template.rewards);
+  const ability = templateRewards
+    ? templateRewards[0].statKey
+    : template.ability || template.statKey || "life";
   const type = overrides.type || template.defaultType || template.type || "choice";
   const description = template.description || template.desc || "";
-  const defaultXp = clampTemplateXp(template.defaultXp ?? template.xp);
-  const keepTemplateRewards = Array.isArray(template.rewards) && xp === defaultXp;
+
+  // 분할 보상 템플릿은 XP를 따로 바꾸지 않는 한(또는 합계와 같게 지정한 경우)
+  // 보상 배열을 그대로 유지하고, quest.xp는 항상 보상 합계와 일치시킵니다.
+  // XP를 다르게 지정하면 대표 능력치 단일 보상으로 대체됩니다.
+  const rewardsSum = templateRewards ? rewardsTotalXp(templateRewards) : null;
+  const keepTemplateRewards =
+    templateRewards && (overrides.xp == null || Number(overrides.xp) === rewardsSum);
+  const xp = keepTemplateRewards
+    ? rewardsSum
+    : clampTemplateXp(overrides.xp ?? template.defaultXp ?? template.xp);
   return {
     id: generateQuestId(),
     date,
@@ -324,7 +397,7 @@ export function buildQuestFromTemplate(template, date, overrides = {}) {
     statKey: ability,
     ability,
     xp,
-    rewards: keepTemplateRewards ? template.rewards : null,
+    rewards: keepTemplateRewards ? templateRewards : null,
     status: "open",
     createdAt: nowIso(),
     submittedAt: null,
